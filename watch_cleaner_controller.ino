@@ -84,7 +84,7 @@ void setup() {
   
   // Globals initialization
   //10
-  ncleanCycles = 2;
+  ncleanCycles = 10;
   Working = 0;
   FinishedClean = 0;
   Done = 0;

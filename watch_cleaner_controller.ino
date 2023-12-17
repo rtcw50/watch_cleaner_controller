@@ -16,8 +16,9 @@
 //#define WAITTIME 500
 //#define RUNTIME 15000
 #define WAITTIME 10
-#define RUNTIME 15000
-//#define RUNTIME 150
+#define RUNTIME 3000
+#define SPIN_RINSE_TIME 30000
+
 
 #define ACCEL_DECEL 30
 
@@ -50,6 +51,10 @@ int motorSpeed;
 int ncleanCycles;
 // True: the motors are on, False: motors off
 int Working;
+// True: finished the entire clean cycle
+int FinishedClean;
+// True: Done with the clean and spin rinse - all done, just looping
+int Done;
 
 int Debug=0;
 
@@ -78,11 +83,21 @@ void setup() {
 
   
   // Globals initialization
-  ncleanCycles = 5;
+  //10
+  ncleanCycles = 2;
   Working = 0;
+  FinishedClean = 0;
+  Done = 0;
 
   setProgress(0);
   if (Debug) { Serial.print("setup\n"); }
+}
+
+void setDisplay(byte value)
+{
+  digitalWrite(ShiftRegLatchPin, LOW);
+  shiftOut(ShiftRegDataPin, ShiftRegClockPin, MSBFIRST, value);
+  digitalWrite(ShiftRegLatchPin, HIGH);
 }
 
 void setProgress(int v)
@@ -142,6 +157,12 @@ void loop() {
   int timerIndex, motorSpeedIndex;
   unsigned long currTime = millis();
 
+  if (Done == 1) {
+    // Prepare for next clean    
+    FinishedClean = 0;
+    Done = 0;
+  }
+
   // Read the set/run switch
   int run = digitalRead(SET_RUN);
   delay(20);
@@ -149,6 +170,16 @@ void loop() {
   if (Debug) {
     Serial.print("In loop\n");
     Serial.print("Run state: \n"); Serial.print(run,DEC); Serial.print("\n");
+  }
+
+  // At the end of the clean, check run switch. If low,
+  // spin rinse the basket.
+  if ((run == LOW) && (FinishedClean == 1)) {
+      motorOn(DRV8871_IN1, DRV8871_IN2);
+      wait(currTime, SPIN_RINSE_TIME);
+      currTime = millis();
+      motorStop(DRV8871_IN1, DRV8871_IN2);
+      Done = 1;
   }
 
   // Set up motor run time
@@ -211,7 +242,9 @@ void loop() {
         // Finish the clean process, when LEDs are all off (progressBar[0,1]), finish
     if ( getProgress() < LAST_LIT_LED_INDEX ) {
       Working = 0;
+      FinishedClean = 1;
+      // 0x55 value means finished
+      setDisplay(0x55);
     }
   }
-
-}
+} // loop

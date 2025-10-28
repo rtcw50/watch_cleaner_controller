@@ -4,7 +4,7 @@
       "name": "Arduino",
       "includePath": [
         "C:\\Users\\John\\Documents\\Arduino\\libraries/**",
-        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_gui/**",
+        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller/**",
         "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3\\include/**"
       ],
       "forcedInclude": [],
@@ -31,7 +31,7 @@
         "-DARDUINO_USB_MODE=1",
         "-DARDUINO_USB_CDC_ON_BOOT=1",
         "@C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3/flags/defines",
-        "-IC:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_gui",
+        "-IC:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller",
         "-iprefix",
         "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3/include/",
         "@C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3/flags/includes",
@@ -43,11 +43,11 @@
         "-IC:\\Users\\John\\Documents\\Arduino\\libraries\\TFT_eSPI",
         "-IC:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.2\\libraries\\SPI\\src",
         "-IC:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.2\\libraries\\SPIFFS\\src",
-        "@c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_gui\\build/build_opt.h",
-        "@c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_gui\\build/file_opts",
-        "c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_gui\\build\\sketch\\watch_cleaner_gui.ino.cpp",
+        "@c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/build_opt.h",
+        "@c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/file_opts",
+        "c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp",
         "-o",
-        "c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_gui\\build\\sketch\\watch_cleaner_gui.ino.cpp.o"
+        "c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp.o"
       ],
       "defines": [
         "F_CPU=160000000L",

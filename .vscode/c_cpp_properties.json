@@ -43,11 +43,11 @@
         "-IC:\\Users\\John\\Documents\\Arduino\\libraries\\TFT_eSPI",
         "-IC:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.2\\libraries\\SPI\\src",
         "-IC:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.2\\libraries\\SPIFFS\\src",
-        "@c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/build_opt.h",
-        "@c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/file_opts",
-        "c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp",
+        "@C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/build_opt.h",
+        "@C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/file_opts",
+        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp",
         "-o",
-        "c:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp.o"
+        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp.o"
       ],
       "defines": [
         "F_CPU=160000000L",

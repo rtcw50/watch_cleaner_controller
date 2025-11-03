@@ -21,6 +21,10 @@
 #define FIX_LVINDEV_ROTATION
 #define CALIBRATION_FILE "/TouchCalData1"
 #define REPEAT_CAL false
+#define MY_SETTINGS_SYMBOL "\xEF\x80\x93"
+#define MY_HOME_SYMBOL     "\xEF\x80\x95"
+#define MY_BACK_SYMBOL     "\xEF\x81\xA0"
+LV_FONT_DECLARE(BigSym_50x50)
 
 #define SCREEN_PORTRAIT 0
 #define SCREEN_LANDSCAPE 1
@@ -156,6 +160,7 @@ static uint32_t my_tick(void)
 {
     return millis();
 }
+
 static void main_button_event_cb(lv_event_t * event)
 {
   lv_obj_t * button = lv_event_get_target_obj(event);
@@ -203,6 +208,25 @@ static void clean_spin_button_event_cb(lv_event_t * event)
     }
   }
 }
+
+static void settings_button_event_cb(lv_event_t * event)
+{
+  lv_obj_t * button = lv_event_get_target_obj(event);
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
+
+  //Serial.printf("Button event is %d\n", code);
+  // This is a checked button. 
+  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
+  Serial.println("Settings button handler");
+  // Change back to start mode, if checked already
+  // I use strcmp instead of button state because timing of state change
+  // button callback is not deterministic in my experiements
+  if (code == LV_EVENT_CLICKED) {
+    Serial.println("Settings button clicked");
+  }
+}
+
 #if 0
 static void slider_event_cb(lv_event_t * e)
 {
@@ -352,6 +376,27 @@ void setup()
     lv_obj_set_height(mach_status_label, 25);
     lv_obj_align(mach_status_label, LV_ALIGN_TOP_LEFT, 15, 215);
     lv_label_set_text(mach_status_label, "Stopped..."); // Keyed by start button 
+
+    /* Settings icon/button */
+    lv_obj_t * settings_button; 
+    settings_button= lv_btn_create(lv_screen_active());
+    lv_obj_remove_style_all(settings_button);
+    static lv_style_t transparent_button_style;
+    lv_style_init(&transparent_button_style);
+    lv_style_set_bg_opa(&transparent_button_style,  LV_OPA_TRANSP);
+    lv_obj_add_style(settings_button, &transparent_button_style,LV_PART_MAIN);
+    lv_obj_t * settings_button_label = lv_label_create(settings_button);
+    // Custom sized gear "settings" icon button, see LVGL lv_font docs
+    lv_obj_set_style_text_font(settings_button_label, &BigSym_50x50, 0);
+    lv_obj_set_style_text_color(settings_button_label, lv_color_black(), 0);
+    lv_label_set_text(settings_button_label, MY_SETTINGS_SYMBOL);
+    lv_obj_center(settings_button_label);
+    lv_obj_remove_flag(settings_button, LV_OBJ_FLAG_PRESS_LOCK);
+    lv_obj_add_event_cb(settings_button, settings_button_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_set_width(settings_button, 60); 
+    lv_obj_set_height(settings_button, 60);
+    //lv_obj_align_to(settings_button, mach_status_label, LV_ALIGN_OUT_RIGHT_MID, 20, -30);
+    lv_obj_align(settings_button, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 
     #if 0
     /* Slider */

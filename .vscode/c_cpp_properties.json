@@ -8,12 +8,12 @@
         "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3\\include/**"
       ],
       "forcedInclude": [],
-      "compilerPath": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-rv32\\2507/bin/riscv32-esp-elf-gcc",
+      "compilerPath": "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-rv32\\2507/bin/riscv32-esp-elf-g++",
       "compilerArgs": [
-        "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-rv32\\2507/bin/riscv32-esp-elf-gcc",
+        "C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp-rv32\\2507/bin/riscv32-esp-elf-g++",
         "-MMD",
         "-c",
-        "@C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3/flags/c_flags",
+        "@C:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\tools\\esp32-arduino-libs\\idf-release_v5.5-07e9bf49-v1\\esp32c3/flags/cpp_flags",
         "-w",
         "-Os",
         "-Werror=return-type",
@@ -45,9 +45,9 @@
         "-IC:\\Users\\John\\AppData\\Local\\Arduino15\\packages\\esp32\\hardware\\esp32\\3.3.2\\libraries\\SPIFFS\\src",
         "@C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/build_opt.h",
         "@C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build/file_opts",
-        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\BigSym_50x50.c",
+        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp",
         "-o",
-        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\BigSym_50x50.c.o"
+        "C:\\Users\\John\\Documents\\Projects\\vscode-esp32\\watch_cleaner_controller\\build\\sketch\\watch_cleaner_controller.ino.cpp.o"
       ],
       "defines": [
         "F_CPU=160000000L",

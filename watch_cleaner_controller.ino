@@ -21,10 +21,6 @@
 #define FIX_LVINDEV_ROTATION
 #define CALIBRATION_FILE "/TouchCalData1"
 #define REPEAT_CAL false
-#define MY_SETTINGS_SYMBOL "\xEF\x80\x93"
-#define MY_HOME_SYMBOL     "\xEF\x80\x95"
-#define MY_BACK_SYMBOL     "\xEF\x81\xA0"
-LV_FONT_DECLARE(BigSym_50x50)
 
 #define SCREEN_PORTRAIT 0
 #define SCREEN_LANDSCAPE 1
@@ -65,14 +61,15 @@ TFT_eSPI tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT);
 /* Global Widget Objects */
 lv_obj_t * main_header_label;
 lv_obj_t * start_button; 
-lv_obj_t * clean_spin_button;
+lv_obj_t * stop_button;
 lv_obj_t * settings_button;
 lv_obj_t * mach_status_label;
 lv_obj_t * time_remaining_label;
 lv_timer_t * clean_rinse_timer;
 /* Statically allocate some room to paste in seconds remaining*/
-static char Mach_Status_Text_Stopped[25] = "Stopped ...";
-static char Mach_Status_Text_Running[25] = "Running ...";
+static char *Mach_Status_Text_Stopped = "Stopped ...";
+static char *Mach_Status_Text_Running = "Running ...";
+static char *Mach_Status_Text_Paused =  "Paused ...";
 static char Mach_Status_Text_Time_Remaining[7] = "      ";
 #define MAIN_CYCLE_REPEAT_COUNT 62
 static uint32_t g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT; /* 1 second per period */
@@ -210,11 +207,9 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
     LV_ASSERT(lv_obj_has_state(start_button,LV_STATE_CHECKED));
     // Now manually change the start button back to unchecked state and update the label
     lv_obj_clear_state(start_button, LV_STATE_CHECKED); 
-    lv_label_set_text(label, "START");
+    lv_label_set_text(label, LV_SYMBOL_PLAY);
     lv_label_set_text(mach_status_label,Mach_Status_Text_Stopped);
     clear_time_remaining_label(NULL);
-    // delay clearing the time remaining text until next lv_timer_call in loop
-    //lv_async_call(clear_time_remaining_label,NULL);
   }
 }
 
@@ -233,54 +228,59 @@ static void main_button_event_cb(lv_event_t * event)
   // button callback is not deterministic in my experiements
   if (code == LV_EVENT_VALUE_CHANGED) {
     Serial.printf("Button state: %d\n", lv_obj_get_state(start_button));
+    // "play" button is clicked, changes to "pause" icon
     if (lv_obj_has_state(start_button, LV_STATE_CHECKED)) {
-      // Set button to STOP, but start the timer
-      lv_label_set_text(label,"STOP");
-    /* Timers are used to control the duration of the clean/rinse cycle, the
-      spin cycles and the clockwise/counterclockwise rotation duration.
-      The user defines a setting for each and program divides the total time
-      into a number of periods (each period being 1 second). This allows us to
-      update the time remaining in seconds in the status text field easily. */
+      // Set button to PAUSE and create or resume the timer
+      lv_label_set_text(label,LV_SYMBOL_PAUSE);
+
+    /* Timers are used to control the duration of the clean/rinse cycle.
+      The timer repeats essentially once per seconds, acting like a countdown
+      timers. The total duration is determined by the repeat count. */
     
-      g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT + 1; /* 1 second per period */
-      clean_rinse_timer = lv_timer_create(clean_rinse_timer_cb, 1000 /* ms*/, &g_periods_remaining);
-      lv_timer_set_repeat_count(clean_rinse_timer, g_periods_remaining);
-      // format_and_publish_time_remaining(periods_remaining);
-      lv_label_set_text(mach_status_label, Mach_Status_Text_Running);
+      /* If timer doesn't exist, create and start it */
+      if (clean_rinse_timer == NULL) {
+        g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT + 1; /* 1 second per period */
+        clean_rinse_timer = lv_timer_create(clean_rinse_timer_cb, 1000 /* ms*/, &g_periods_remaining);
+        lv_timer_set_repeat_count(clean_rinse_timer, g_periods_remaining);
+        lv_label_set_text(mach_status_label, Mach_Status_Text_Running);
+      }
+      else { /* otherwise, resume an existing timer */ 
+        lv_timer_resume(clean_rinse_timer);
+      }
 
     } 
-    else {  // Start button back to unchecked state
-      lv_label_set_text(label,"START");
-      lv_label_set_text(mach_status_label,Mach_Status_Text_Stopped);
-      format_and_publish_time_remaining(0);
+    else {  // "pause" button is clicked 
+      lv_label_set_text(label,LV_SYMBOL_PLAY);
+      lv_label_set_text(mach_status_label,Mach_Status_Text_Paused);
+      format_and_publish_time_remaining(g_periods_remaining);
       // Manually stop the timer.
       if (clean_rinse_timer != NULL) {
-        lv_timer_delete(clean_rinse_timer);
-        clean_rinse_timer = NULL;
+        lv_timer_pause(clean_rinse_timer);
       }
     }
   }
 }
 
-static void clean_spin_button_event_cb(lv_event_t * event)
+static void stop_button_event_cb(lv_event_t * event)
 {
   lv_obj_t * button = lv_event_get_target_obj(event);
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
   //Serial.printf("Button event is %d\n", code);
-  // This is a checked button. 
   // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("Clean/spin button handler");
-  // Change back to start mode, if checked already
-  // I use strcmp instead of button state because timing of state change
-  // button callback is not deterministic in my experiements
-  if (code == LV_EVENT_VALUE_CHANGED) {
-    if (lv_strcmp(lv_label_get_text(label),"CLEAN")==0) {
-      lv_label_set_text(label,"SPIN");
-    } 
-    else {
-      lv_label_set_text(label, "CLEAN");
+  Serial.println("Stop button handler");
+  if (code == LV_EVENT_CLICKED) {
+    // The duration timer is active (running or paused)
+    if (clean_rinse_timer != NULL) {
+      lv_timer_delete(clean_rinse_timer);
+      clean_rinse_timer = NULL;
+      // Now manually change the start button back to unchecked state and update the label
+      lv_obj_clear_state(start_button, LV_STATE_CHECKED); 
+      lv_obj_t * start_button_label = lv_obj_get_child(start_button, 0);
+      lv_label_set_text(start_button_label, LV_SYMBOL_PLAY);
+      lv_label_set_text(mach_status_label,Mach_Status_Text_Stopped);
+      clear_time_remaining_label(NULL);
     }
   }
 }
@@ -413,9 +413,9 @@ void setup()
     start_button = lv_btn_create(lv_screen_active());
     lv_obj_remove_style_all(start_button);
     lv_obj_t * start_button_label = lv_label_create(start_button);
-    lv_label_set_text(start_button_label, "START");
+    lv_label_set_text(start_button_label, LV_SYMBOL_PLAY);
     lv_obj_center(start_button_label);
-    lv_obj_set_style_text_font(start_button_label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_font(start_button_label, &lv_font_montserrat_48, 0);
     lv_obj_add_flag(start_button, LV_OBJ_FLAG_CHECKABLE);
     lv_obj_remove_flag(start_button, LV_OBJ_FLAG_PRESS_LOCK);
     lv_obj_add_event_cb(start_button, main_button_event_cb, LV_EVENT_ALL, NULL);
@@ -426,23 +426,23 @@ void setup()
     lv_obj_add_style(start_button, &on_button_style, LV_STATE_DEFAULT);
     lv_obj_add_style(start_button, &off_button_style, LV_STATE_CHECKED);
 
-    /* Clean/Spin Button*/
-    clean_spin_button = lv_btn_create(lv_screen_active());
-    lv_obj_remove_style_all(clean_spin_button);
-    lv_obj_t * clean_spin_button_label = lv_label_create(clean_spin_button);
-    lv_label_set_text(clean_spin_button_label, "CLEAN");
-    lv_obj_center(clean_spin_button_label);
-    lv_obj_set_style_text_font(clean_spin_button_label, &lv_font_montserrat_18, 0);
-    lv_obj_add_flag(clean_spin_button, LV_OBJ_FLAG_CHECKABLE);
-    lv_obj_remove_flag(clean_spin_button, LV_OBJ_FLAG_PRESS_LOCK);
-    lv_obj_add_event_cb(clean_spin_button, clean_spin_button_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_set_width(clean_spin_button, 75); 
-    lv_obj_set_height(clean_spin_button,75);
-    lv_obj_align_to(clean_spin_button, start_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+    /* Stop Button*/
+    stop_button = lv_btn_create(lv_screen_active());
+    lv_obj_remove_style_all(stop_button);
+    lv_obj_t * stop_button_label = lv_label_create(stop_button);
+    lv_label_set_text(stop_button_label, LV_SYMBOL_STOP);
+    lv_obj_center(stop_button_label);
+    lv_obj_set_style_text_font(stop_button_label, &lv_font_montserrat_48, 0);
+    // lv_obj_add_flag(stop_button, LV_OBJ_FLAG_CHECKABLE);
+    lv_obj_remove_flag(stop_button, LV_OBJ_FLAG_PRESS_LOCK);
+    lv_obj_add_event_cb(stop_button, stop_button_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_set_width(stop_button, 75); 
+    lv_obj_set_height(stop_button,75);
+    lv_obj_align_to(stop_button, start_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
 
     /* Apply styles */
-    lv_obj_add_style(clean_spin_button, &on_button_style, LV_STATE_DEFAULT);
-    lv_obj_add_style(clean_spin_button, &off_button_style, LV_STATE_CHECKED);
+    lv_obj_add_style(stop_button, &on_button_style, LV_STATE_DEFAULT);
+    //lv_obj_add_style(clean_spin_button, &off_button_style, LV_STATE_CHECKED);
 
     /* Machine status text label*/
     mach_status_label = lv_label_create(lv_screen_active());
@@ -466,9 +466,9 @@ void setup()
     lv_obj_add_style(settings_button, &transparent_button_style,LV_PART_MAIN);
     lv_obj_t * settings_button_label = lv_label_create(settings_button);
     // Custom sized gear "settings" icon button, see LVGL lv_font docs
-    lv_obj_set_style_text_font(settings_button_label, &BigSym_50x50, 0);
+    lv_obj_set_style_text_font(settings_button_label, &lv_font_montserrat_48, 0);
     lv_obj_set_style_text_color(settings_button_label, lv_color_black(), 0);
-    lv_label_set_text(settings_button_label, MY_SETTINGS_SYMBOL);
+    lv_label_set_text(settings_button_label, LV_SYMBOL_SETTINGS);
     lv_obj_center(settings_button_label);
     lv_obj_remove_flag(settings_button, LV_OBJ_FLAG_PRESS_LOCK);
     lv_obj_add_event_cb(settings_button, settings_button_event_cb, LV_EVENT_ALL, NULL);

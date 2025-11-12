@@ -58,6 +58,12 @@ uint32_t draw_buf[DRAW_BUF_SIZE / 4];
  */
 TFT_eSPI tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT); 
 
+enum class OperatingMode {
+  clean,
+  rinse,
+  spin
+};
+
 /* Global Widget Objects */
 lv_obj_t * main_header_label;
 lv_obj_t * start_button; 
@@ -73,10 +79,17 @@ static char *Mach_Status_Text_Paused =  "Paused ...";
 static char Mach_Status_Text_Time_Remaining[7] = "      ";
 #define MAIN_CYCLE_REPEAT_COUNT 62
 static uint32_t g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT; /* 1 second per period */
+static OperatingMode g_operating_mode;
 
 /* Create reusable on/off button styles */
 static lv_style_t on_button_style;  // button appearance when not clicked
 static lv_style_t off_button_style; // button appearance when clicked
+
+/* Radio button styles and state variable */
+static lv_style_t style_radio;
+static lv_style_t style_radio_chk;
+static lv_style_t style_radio_button_container;
+static int32_t active_index = 0;
 
 static void set_screen_bg_style(lv_obj_t * scr)
 {
@@ -223,6 +236,20 @@ static void main_button_event_cb(lv_event_t * event)
   // This is a checked button. 
   // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
   Serial.println("main button handler");
+  switch (g_operating_mode) {
+    case OperatingMode::clean:
+      Serial.println("Clean mode");
+      break;
+    case OperatingMode::rinse:
+      Serial.println("Rinse mode");
+      break;
+    case OperatingMode::spin:
+      Serial.println("Spin mode");
+      break;
+    default:
+      LV_ASSERT(false);
+  }
+
   // Change back to start mode, if checked already
   // I use strcmp instead of button state because timing of state change
   // button callback is not deterministic in my experiements
@@ -285,6 +312,25 @@ static void stop_button_event_cb(lv_event_t * event)
   }
 }
 
+static void radio_event_handler(lv_event_t * e)
+{
+    int32_t * active_id = (int32_t *)lv_event_get_user_data(e);
+    lv_obj_t * container = (lv_obj_t *)lv_event_get_current_target(e);
+    lv_obj_t * act_cb = lv_event_get_target_obj(e);
+    lv_obj_t * old_cb = lv_obj_get_child(container, *active_id);
+
+    /*Do nothing if the container was clicked*/
+    if(act_cb == container) return;
+
+    lv_obj_remove_state(old_cb, LV_STATE_CHECKED);   /*Uncheck the previous radio button*/
+    lv_obj_add_state(act_cb, LV_STATE_CHECKED);     /*Check the current radio button*/
+
+    *active_id = lv_obj_get_index(act_cb);
+    /* Save the operating mode: clean, rinse or spin */
+    g_operating_mode = static_cast<OperatingMode>(*active_id);
+}
+
+
 static void settings_button_event_cb(lv_event_t * event)
 {
   lv_obj_t * button = lv_event_get_target_obj(event);
@@ -314,6 +360,14 @@ static void slider_event_cb(lv_event_t * e)
 }
 #endif
 
+static void radio_button_create(lv_obj_t * parent, const char * txt)
+{
+    lv_obj_t * obj = lv_checkbox_create(parent);
+    lv_checkbox_set_text(obj, txt);
+    lv_obj_add_flag(obj, LV_OBJ_FLAG_EVENT_BUBBLE);
+    lv_obj_add_style(obj, &style_radio, LV_PART_INDICATOR);
+    lv_obj_add_style(obj, &style_radio_chk, LV_PART_INDICATOR | LV_STATE_CHECKED);
+}
 
 void setup()
 {
@@ -433,6 +487,7 @@ void setup()
     lv_label_set_text(stop_button_label, LV_SYMBOL_STOP);
     lv_obj_center(stop_button_label);
     lv_obj_set_style_text_font(stop_button_label, &lv_font_montserrat_48, 0);
+    // Stop button is not checkable, does not retain button state.
     // lv_obj_add_flag(stop_button, LV_OBJ_FLAG_CHECKABLE);
     lv_obj_remove_flag(stop_button, LV_OBJ_FLAG_PRESS_LOCK);
     lv_obj_add_event_cb(stop_button, stop_button_event_cb, LV_EVENT_ALL, NULL);
@@ -442,7 +497,37 @@ void setup()
 
     /* Apply styles */
     lv_obj_add_style(stop_button, &on_button_style, LV_STATE_DEFAULT);
-    //lv_obj_add_style(clean_spin_button, &off_button_style, LV_STATE_CHECKED);
+
+    /* Radio Buttons */
+    /* 3 radio buttons in a container determine whether we're in clean mode, 
+      rinse mode, or spin (dry) mode */
+    lv_style_init(&style_radio);
+    //lv_style_set_radius(&style_radio, LV_RADIUS_CIRCLE);
+    lv_style_set_border_color(&style_radio, lv_color_black());
+
+    lv_style_init(&style_radio_chk);
+    //lv_style_set_bg_image_src(&style_radio_chk, NULL);
+    lv_style_set_border_color(&style_radio_chk, lv_color_black());
+    lv_style_set_bg_color(&style_radio_chk, lv_color_black());
+    
+    /* container style */
+    lv_style_init(&style_radio_button_container);
+    lv_style_set_bg_color(&style_radio_button_container, lv_palette_main(LV_PALETTE_BLUE));
+    lv_style_set_border_color(&style_radio_button_container, lv_color_black());
+    lv_style_set_border_width(&style_radio_button_container, 2);
+    
+    lv_obj_t * radio_button_container = lv_obj_create(lv_screen_active());
+    lv_obj_set_flex_flow(radio_button_container, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_size(radio_button_container, 95, 100);
+    lv_obj_align_to(radio_button_container, stop_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+    lv_obj_add_event_cb(radio_button_container, radio_event_handler, LV_EVENT_CLICKED, &active_index);
+    lv_obj_add_style(radio_button_container, &style_radio_button_container, 0);
+
+    radio_button_create(radio_button_container, "CLEAN");
+    radio_button_create(radio_button_container, "RINSE");
+    radio_button_create(radio_button_container, "SPIN");
+    lv_obj_add_state(lv_obj_get_child(radio_button_container, 0), LV_STATE_CHECKED);
+
 
     /* Machine status text label*/
     mach_status_label = lv_label_create(lv_screen_active());

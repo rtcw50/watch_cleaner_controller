@@ -65,6 +65,8 @@ enum class OperatingMode {
 };
 
 /* Global Widget Objects */
+lv_obj_t * main_screen;
+lv_obj_t * settings_screen;
 lv_obj_t * main_header_label;
 lv_obj_t * start_button; 
 lv_obj_t * stop_button;
@@ -72,6 +74,7 @@ lv_obj_t * settings_button;
 lv_obj_t * mach_status_label;
 lv_obj_t * time_remaining_label;
 lv_timer_t * clean_rinse_timer;
+lv_obj_t * return_to_main_button;
 /* Statically allocate some room to paste in seconds remaining*/
 static char *Mach_Status_Text_Stopped = "Stopped ...";
 static char *Mach_Status_Text_Running = "Running ...";
@@ -346,6 +349,22 @@ static void settings_button_event_cb(lv_event_t * event)
   // button callback is not deterministic in my experiements
   if (code == LV_EVENT_CLICKED) {
     Serial.println("Settings button clicked");
+    lv_screen_load_anim(settings_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
+  }
+}
+
+static void return_to_main_button_event_cb(lv_event_t * event)
+{
+  lv_obj_t * button = lv_event_get_target_obj(event);
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
+
+  //Serial.printf("Button event is %d\n", code);
+  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
+  Serial.println("Return button handler");
+  if (code == LV_EVENT_CLICKED) {
+    Serial.println("Return button clicked");
+    lv_screen_load_anim(main_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
   }
 }
 
@@ -398,7 +417,8 @@ void setup()
     // This rotation is also required to be coherent with the TFT_eSPI rotation.
     lv_display_set_rotation(disp, TFT_ROTATION);
     // Add nice background to main screen
-    set_screen_bg_style(lv_screen_active());
+    main_screen = lv_screen_active();
+    set_screen_bg_style(main_screen);
 #if 0
     Serial.println("After lv_display_set_rotation");
     Serial.printf("disp->hor_res: %d  disp->ver_res: %d\n", 
@@ -458,13 +478,13 @@ void setup()
 
 
     /* Header label */
-    main_header_label = lv_label_create( lv_screen_active() );
+    main_header_label = lv_label_create(main_screen);
     lv_label_set_text( main_header_label, "Watch Cleaner Controller, v" WCC_VER );
     lv_obj_set_style_text_font(main_header_label, &lv_font_montserrat_20, 0);
     lv_obj_align( main_header_label, LV_ALIGN_TOP_MID, 0, 0 );
 
     /* Start Button*/
-    start_button = lv_btn_create(lv_screen_active());
+    start_button = lv_btn_create(main_screen);
     lv_obj_remove_style_all(start_button);
     lv_obj_t * start_button_label = lv_label_create(start_button);
     lv_label_set_text(start_button_label, LV_SYMBOL_PLAY);
@@ -481,7 +501,7 @@ void setup()
     lv_obj_add_style(start_button, &off_button_style, LV_STATE_CHECKED);
 
     /* Stop Button*/
-    stop_button = lv_btn_create(lv_screen_active());
+    stop_button = lv_btn_create(main_screen);
     lv_obj_remove_style_all(stop_button);
     lv_obj_t * stop_button_label = lv_label_create(stop_button);
     lv_label_set_text(stop_button_label, LV_SYMBOL_STOP);
@@ -516,7 +536,7 @@ void setup()
     lv_style_set_border_color(&style_radio_button_container, lv_color_black());
     lv_style_set_border_width(&style_radio_button_container, 2);
     
-    lv_obj_t * radio_button_container = lv_obj_create(lv_screen_active());
+    lv_obj_t * radio_button_container = lv_obj_create(main_screen);
     lv_obj_set_flex_flow(radio_button_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_size(radio_button_container, 95, 100);
     lv_obj_align_to(radio_button_container, stop_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
@@ -530,20 +550,20 @@ void setup()
 
 
     /* Machine status text label*/
-    mach_status_label = lv_label_create(lv_screen_active());
+    mach_status_label = lv_label_create(main_screen);
     lv_obj_set_width(mach_status_label, 100);
     lv_obj_set_height(mach_status_label, 25);
     lv_obj_align(mach_status_label, LV_ALIGN_TOP_LEFT, 15, 215);
     lv_label_set_text(mach_status_label, Mach_Status_Text_Stopped); // Keyed by start button 
     /* Time remaining label - aligned next to machine status label */
-    time_remaining_label = lv_label_create(lv_screen_active());
+    time_remaining_label = lv_label_create(main_screen);
     lv_obj_set_width(time_remaining_label, 50);
     lv_obj_set_height(time_remaining_label, 25);
     lv_obj_align_to(time_remaining_label, mach_status_label, LV_ALIGN_OUT_RIGHT_MID, 0, 0); 
     lv_label_set_text(time_remaining_label, Mach_Status_Text_Time_Remaining); // Keyed by start button 
 
     /* Settings icon/button */
-    settings_button= lv_btn_create(lv_screen_active());
+    settings_button= lv_btn_create(main_screen);
     lv_obj_remove_style_all(settings_button);
     static lv_style_t transparent_button_style;
     lv_style_init(&transparent_button_style);
@@ -561,6 +581,23 @@ void setup()
     lv_obj_set_height(settings_button, 60);
     //lv_obj_align_to(settings_button, mach_status_label, LV_ALIGN_OUT_RIGHT_MID, 20, -30);
     lv_obj_align(settings_button, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
+
+    /* Settings Screen */
+    settings_screen = lv_obj_create(NULL);
+    /* Create return to main button on settings screen */
+    return_to_main_button = lv_btn_create(settings_screen);
+    lv_obj_remove_style_all(return_to_main_button);
+    lv_obj_t * return_to_main_button_label = lv_label_create(return_to_main_button);
+    lv_label_set_text(return_to_main_button_label, LV_SYMBOL_NEW_LINE);
+    lv_obj_center(return_to_main_button_label);
+    lv_obj_set_style_text_font(return_to_main_button_label, &lv_font_montserrat_48, 0);
+    lv_obj_remove_flag(return_to_main_button, LV_OBJ_FLAG_PRESS_LOCK);
+    lv_obj_add_event_cb(return_to_main_button, return_to_main_button_event_cb, LV_EVENT_ALL, NULL);
+    lv_obj_set_width(return_to_main_button, 75); 
+    lv_obj_set_height(return_to_main_button,75);
+    lv_obj_align(return_to_main_button, LV_ALIGN_TOP_LEFT, 30, 85);
+    /* Apply styles */
+    lv_obj_add_style(return_to_main_button, &on_button_style, LV_STATE_DEFAULT);
 
     #if 0
     /* Slider */

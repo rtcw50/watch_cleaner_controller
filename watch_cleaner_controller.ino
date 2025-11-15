@@ -52,6 +52,9 @@
 #define DRAW_BUF_SIZE (TFT_HOR_RES * TFT_VER_RES / 10 * (LV_COLOR_DEPTH / 8))
 uint32_t draw_buf[DRAW_BUF_SIZE / 4];
 
+/* Externs */
+extern void wcc_create_settings(void);
+
 /* Create the TFT_eSPI object used for touch calibration.
    The TFT_eSPI object is always created with the canonical
    screen width and height (240x320 for ILI9341).
@@ -85,8 +88,9 @@ static uint32_t g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT; /* 1 second per per
 static OperatingMode g_operating_mode;
 
 /* Create reusable on/off button styles */
-static lv_style_t on_button_style;  // button appearance when not clicked
-static lv_style_t off_button_style; // button appearance when clicked
+lv_style_t on_button_style;  // button appearance when not clicked
+lv_style_t off_button_style; // button appearance when clicked
+lv_style_t transparent_button_style; // but w no border or background
 
 /* Radio button styles and state variable */
 static lv_style_t style_radio;
@@ -353,20 +357,6 @@ static void settings_button_event_cb(lv_event_t * event)
   }
 }
 
-static void return_to_main_button_event_cb(lv_event_t * event)
-{
-  lv_obj_t * button = lv_event_get_target_obj(event);
-  lv_event_code_t code = lv_event_get_code(event);
-  lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
-
-  //Serial.printf("Button event is %d\n", code);
-  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("Return button handler");
-  if (code == LV_EVENT_CLICKED) {
-    Serial.println("Return button clicked");
-    lv_screen_load_anim(main_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
-  }
-}
 
 #if 0
 static void slider_event_cb(lv_event_t * e)
@@ -565,7 +555,6 @@ void setup()
     /* Settings icon/button */
     settings_button= lv_btn_create(main_screen);
     lv_obj_remove_style_all(settings_button);
-    static lv_style_t transparent_button_style;
     lv_style_init(&transparent_button_style);
     lv_style_set_bg_opa(&transparent_button_style,  LV_OPA_TRANSP);
     lv_obj_add_style(settings_button, &transparent_button_style,LV_PART_MAIN);
@@ -583,21 +572,8 @@ void setup()
     lv_obj_align(settings_button, LV_ALIGN_BOTTOM_RIGHT, 0, 0);
 
     /* Settings Screen */
-    settings_screen = lv_obj_create(NULL);
-    /* Create return to main button on settings screen */
-    return_to_main_button = lv_btn_create(settings_screen);
-    lv_obj_remove_style_all(return_to_main_button);
-    lv_obj_t * return_to_main_button_label = lv_label_create(return_to_main_button);
-    lv_label_set_text(return_to_main_button_label, LV_SYMBOL_NEW_LINE);
-    lv_obj_center(return_to_main_button_label);
-    lv_obj_set_style_text_font(return_to_main_button_label, &lv_font_montserrat_48, 0);
-    lv_obj_remove_flag(return_to_main_button, LV_OBJ_FLAG_PRESS_LOCK);
-    lv_obj_add_event_cb(return_to_main_button, return_to_main_button_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_set_width(return_to_main_button, 75); 
-    lv_obj_set_height(return_to_main_button,75);
-    lv_obj_align(return_to_main_button, LV_ALIGN_TOP_LEFT, 30, 85);
-    /* Apply styles */
-    lv_obj_add_style(return_to_main_button, &on_button_style, LV_STATE_DEFAULT);
+    wcc_create_settings();
+
 
     #if 0
     /* Slider */

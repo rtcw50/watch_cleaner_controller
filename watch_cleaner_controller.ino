@@ -91,6 +91,7 @@ static OperatingMode g_operating_mode;
 lv_style_t on_button_style;  // button appearance when not clicked
 lv_style_t off_button_style; // button appearance when clicked
 lv_style_t transparent_button_style; // but w no border or background
+lv_style_t duration_button_style; // Used in settings screen
 
 /* Radio button styles and state variable */
 static lv_style_t style_radio;
@@ -98,17 +99,6 @@ static lv_style_t style_radio_chk;
 static lv_style_t style_radio_button_container;
 static int32_t active_index = 0;
 
-static void set_screen_bg_style(lv_obj_t * scr)
-{
-  static lv_style_t style;
-  lv_style_init(&style);
-  lv_style_set_radius(&style, 5);
-
-  /*Make a gradient*/
-  lv_style_set_bg_opa(&style, LV_OPA_COVER);
-  lv_style_set_bg_color(&style, lv_palette_lighten(LV_PALETTE_RED, 1));
-  lv_obj_add_style(scr, &style, 0);
-}
 
 #if LV_USE_LOG != 0
 void my_print( lv_log_level_t level, const char * buf )
@@ -369,6 +359,41 @@ static void slider_event_cb(lv_event_t * e)
 }
 #endif
 
+void wcc_set_screen_bg_style(lv_obj_t * scr)
+{
+  static lv_style_t style;
+  lv_style_init(&style);
+  lv_style_set_radius(&style, 2);
+  // Nice grey background
+  lv_color_t bgc = lv_color_make(0x99,0x99,0x99);
+
+
+  /*Make a gradient*/
+  lv_style_set_bg_opa(&style, LV_OPA_COVER);
+  lv_style_set_bg_color(&style, bgc);
+  lv_obj_add_style(scr, &style, 0);
+}
+
+void wcc_create_title_bar(lv_obj_t * scr, const char * title)
+{
+    // Pleasant blue screen title bar
+    lv_color_t  tc = lv_color_make(0xc, 0x0, 0xcc);
+    lv_obj_t * title_cont = lv_obj_create(scr);
+    lv_obj_t * title_label = lv_label_create(title_cont);
+    // No border
+    lv_obj_set_style_border_width(title_cont, 0, 0);
+    // Squared off corners
+    lv_obj_set_style_radius(title_cont, 1, 0);
+    lv_label_set_text(title_label, title );
+    lv_obj_center(title_label);
+    lv_obj_set_width(title_cont, lv_obj_get_width(scr));
+    lv_obj_set_height(title_cont, 35);
+    lv_obj_set_style_text_font(title_label, &lv_font_montserrat_18, 0);
+    lv_obj_set_style_text_color(title_label, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(title_cont, tc, 0);
+    lv_obj_align( title_cont, LV_ALIGN_TOP_LEFT, 0, 0 );
+}
+
 static void radio_button_create(lv_obj_t * parent, const char * txt)
 {
     lv_obj_t * obj = lv_checkbox_create(parent);
@@ -408,7 +433,7 @@ void setup()
     lv_display_set_rotation(disp, TFT_ROTATION);
     // Add nice background to main screen
     main_screen = lv_screen_active();
-    set_screen_bg_style(main_screen);
+    wcc_set_screen_bg_style(main_screen);
 #if 0
     Serial.println("After lv_display_set_rotation");
     Serial.printf("disp->hor_res: %d  disp->ver_res: %d\n", 
@@ -466,12 +491,25 @@ void setup()
     lv_style_set_text_color(&off_button_style, lv_color_black());
     lv_style_set_pad_all(&off_button_style, 10);
 
+    /* Duration up/down button style in settings screen */
+    lv_color_t dbc = lv_color_make(0x99, 0x99, 0x99);
+    lv_style_init(&duration_button_style);
+    lv_style_set_radius(&duration_button_style, 2);
+    lv_style_set_bg_opa(&duration_button_style, LV_OPA_100);
+    lv_style_set_bg_color(&duration_button_style, dbc);
+    lv_style_set_border_opa(&duration_button_style, LV_OPA_40);
+    lv_style_set_border_width(&duration_button_style, 1);
+    lv_style_set_border_color(&duration_button_style, lv_color_black());
+
 
     /* Header label */
+    wcc_create_title_bar(main_screen,"WATCH CLEANER CONTROLLER");
+  #if 0
     main_header_label = lv_label_create(main_screen);
     lv_label_set_text( main_header_label, "Watch Cleaner Controller, v" WCC_VER );
     lv_obj_set_style_text_font(main_header_label, &lv_font_montserrat_20, 0);
     lv_obj_align( main_header_label, LV_ALIGN_TOP_MID, 0, 0 );
+  #endif
 
     /* Start Button*/
     start_button = lv_btn_create(main_screen);

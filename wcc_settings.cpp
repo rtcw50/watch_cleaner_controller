@@ -9,6 +9,7 @@
  */
 #include <Arduino.h>
 #include <lvgl.h>
+#include "wcc_common.h"
 
  /* Externs */
 extern lv_obj_t * main_screen;
@@ -36,7 +37,7 @@ static void return_to_main_button_event_cb(lv_event_t * event)
 static lv_obj_t * create_duration_item(const char * desc)
 {
     // A container for the desc label, buttons, and time label
-    lv_color_t bgc = lv_color_make(0x99, 0x99, 0x99);
+    lv_color_t bgc = lv_color_make(WCC_BACKGROUND_GREY);
     lv_obj_t * cont = lv_obj_create(settings_screen);
     lv_obj_set_style_border_width(cont, 0, 0);
     lv_obj_set_width(cont, lv_obj_get_width(settings_screen));
@@ -86,7 +87,7 @@ static lv_obj_t * create_duration_item(const char * desc)
     lv_obj_set_style_border_color(time_label_cont, lv_color_black(), 0);
     lv_obj_set_style_radius(time_label_cont, 1, 0);
     lv_obj_set_width(time_label_cont, 75);
-    lv_obj_set_height(time_label_cont, 30);
+    lv_obj_set_height(time_label_cont, 28);
     // Right side of parent container
     lv_obj_align(time_label_cont, LV_ALIGN_RIGHT_MID, -1, -1);
 
@@ -102,17 +103,16 @@ static lv_obj_t * create_duration_item(const char * desc)
 static lv_obj_t * create_return_to_main_button()
 {
     lv_obj_t * button = lv_btn_create(settings_screen);
-    lv_obj_remove_style_all(button);
+    //lv_obj_remove_style_all(button);
     lv_obj_t * button_label = lv_label_create(button);
-    lv_obj_add_style(button, &transparent_button_style, LV_PART_MAIN);
-    lv_obj_set_style_text_font(button_label, &lv_font_montserrat_32, 0);
-    lv_label_set_text(button_label, LV_SYMBOL_NEW_LINE);
-    //lv_obj_center(button_label);
-    lv_obj_align(button_label, LV_ALIGN_BOTTOM_MID, 0, 0);
+    //lv_obj_add_style(button, &transparent_button_style, LV_PART_MAIN);
+    lv_obj_set_style_text_font(button_label, &lv_font_montserrat_16, 0);
+    lv_label_set_text(button_label, "Done " LV_SYMBOL_NEW_LINE);
+    lv_obj_center(button_label);
     lv_obj_remove_flag(button, LV_OBJ_FLAG_PRESS_LOCK);
     lv_obj_add_event_cb(button, return_to_main_button_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_set_width(button, 40); 
-    lv_obj_set_height(button,40);
+    lv_obj_set_width(button, 70); 
+    lv_obj_set_height(button, 30);
     return button;
 }
 
@@ -127,31 +127,29 @@ void wcc_create_settings(void)
 
     // Create return to main button on settings screen 
     return_to_main_button = create_return_to_main_button();
-    lv_obj_align(return_to_main_button, LV_ALIGN_BOTTOM_MID, 0, 0);
+    lv_obj_align(return_to_main_button, LV_ALIGN_TOP_RIGHT, 0, 0);
 
     lv_obj_t * clean_duration_item_container = create_duration_item("CLEAN DURATION:");
     lv_obj_align(clean_duration_item_container, LV_ALIGN_TOP_LEFT, 0, 36);
 
     lv_obj_t * rinse_duration_item_container = create_duration_item("RINSE DURATION:");
     lv_obj_align_to(rinse_duration_item_container, 
-        clean_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+        clean_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 
     lv_obj_t * spin_duration_item_container = create_duration_item("SPIN DURATION:");
     lv_obj_align_to(spin_duration_item_container, 
-        rinse_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 0);
+        rinse_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
 
     lv_obj_t * agitate_duration_item_container = create_duration_item("AGITATE DURATION:");
     lv_obj_align_to(agitate_duration_item_container,
-        spin_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 0); 
+        spin_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
 
     lv_obj_t * max_rpm_item_container = create_duration_item("MAX RPM:");
     lv_obj_align_to(max_rpm_item_container,
-        agitate_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 0); 
+        agitate_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
 
     lv_obj_t * spin_up_rate_item_container = create_duration_item("SPIN UP RATE:");
     lv_obj_align_to(spin_up_rate_item_container,
-        max_rpm_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 0); 
-    // Shorten final container to leave room for return button
-    //lv_obj_set_width(spin_up_rate_item_container, (lv_obj_get_width(settings_screen)-60));
+        max_rpm_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
 
 }

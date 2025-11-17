@@ -6,6 +6,7 @@
 #if LV_USE_TFT_ESPI
 #include <TFT_eSPI.h>
 #endif
+#include "wcc_common.h"
 
 /*To use the built-in examples and demos of LVGL uncomment the includes below respectively.
  *You also need to copy `lvgl/examples` to `lvgl/src/examples`. Similarly for the demos `lvgl/demos` to `lvgl/src/demos`.
@@ -61,11 +62,6 @@ extern void wcc_create_settings(void);
  */
 TFT_eSPI tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT); 
 
-enum class OperatingMode {
-  clean,
-  rinse,
-  spin
-};
 
 /* Global Widget Objects */
 lv_obj_t * main_screen;
@@ -90,7 +86,8 @@ static OperatingMode g_operating_mode;
 /* Create reusable on/off button styles */
 lv_style_t on_button_style;  // button appearance when not clicked
 lv_style_t off_button_style; // button appearance when clicked
-lv_style_t transparent_button_style; // but w no border or background
+lv_style_t stop_button_style; // stop button appearance
+lv_style_t transparent_button_style; //  w no border or background
 lv_style_t duration_button_style; // Used in settings screen
 
 /* Radio button styles and state variable */
@@ -217,7 +214,7 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
     LV_ASSERT(lv_obj_has_state(start_button,LV_STATE_CHECKED));
     // Now manually change the start button back to unchecked state and update the label
     lv_obj_clear_state(start_button, LV_STATE_CHECKED); 
-    lv_label_set_text(label, LV_SYMBOL_PLAY);
+    lv_label_set_text(label, LV_SYMBOL_PLAY LV_SYMBOL_PAUSE);
     lv_label_set_text(mach_status_label,Mach_Status_Text_Stopped);
     clear_time_remaining_label(NULL);
   }
@@ -302,7 +299,7 @@ static void stop_button_event_cb(lv_event_t * event)
       // Now manually change the start button back to unchecked state and update the label
       lv_obj_clear_state(start_button, LV_STATE_CHECKED); 
       lv_obj_t * start_button_label = lv_obj_get_child(start_button, 0);
-      lv_label_set_text(start_button_label, LV_SYMBOL_PLAY);
+      lv_label_set_text(start_button_label, LV_SYMBOL_PLAY LV_SYMBOL_PAUSE);
       lv_label_set_text(mach_status_label,Mach_Status_Text_Stopped);
       clear_time_remaining_label(NULL);
     }
@@ -365,7 +362,7 @@ void wcc_set_screen_bg_style(lv_obj_t * scr)
   lv_style_init(&style);
   lv_style_set_radius(&style, 2);
   // Nice grey background
-  lv_color_t bgc = lv_color_make(0x99,0x99,0x99);
+  lv_color_t bgc = lv_color_make(WCC_BACKGROUND_GREY);
 
 
   /*Make a gradient*/
@@ -377,7 +374,7 @@ void wcc_set_screen_bg_style(lv_obj_t * scr)
 void wcc_create_title_bar(lv_obj_t * scr, const char * title)
 {
     // Pleasant blue screen title bar
-    lv_color_t  tc = lv_color_make(0xc, 0x0, 0xcc);
+    lv_color_t  tc = lv_color_make(WCC_TITLE_BLUE);
     lv_obj_t * title_cont = lv_obj_create(scr);
     lv_obj_t * title_label = lv_label_create(title_cont);
     // No border
@@ -457,46 +454,56 @@ void setup()
     /* Create some global styles */
     lv_style_init(&on_button_style);
     lv_style_init(&off_button_style);
-    /* On button style */
+    lv_style_init(&stop_button_style);
+    lv_style_init(&duration_button_style);
+
+    /* Checkable button has a clicked appearance and not click appearance */
+    /* On button - not clicked */ 
     lv_style_set_radius(&on_button_style, 3);
     lv_style_set_bg_opa(&on_button_style, LV_OPA_100);
-    lv_style_set_bg_color(&on_button_style, lv_palette_main(LV_PALETTE_BLUE));
+//    lv_style_set_bg_color(&on_button_style, lv_palette_main(LV_PALETTE_BLUE));
+    lv_style_set_bg_color(&on_button_style, lv_color_make(WCC_BUTTON_GREEN));
     lv_style_set_border_opa(&on_button_style, LV_OPA_40);
     lv_style_set_border_width(&on_button_style, 4);
     lv_style_set_border_color(&on_button_style, lv_palette_main(LV_PALETTE_GREY));
-    //lv_style_set_shadow_width(&on_button_style, 4);
-    //lv_style_set_shadow_color(&on_button_style, lv_palette_main(LV_PALETTE_GREY));
-    //lv_style_set_shadow_offset_x(&on_button_style, 8);
-    //lv_style_set_shadow_offset_y(&on_button_style, 8);
     lv_style_set_outline_opa(&on_button_style, LV_OPA_COVER);
     lv_style_set_outline_color(&on_button_style, lv_color_black());
     lv_style_set_outline_width(&on_button_style, 2);
     lv_style_set_text_color(&on_button_style, lv_color_black());
     lv_style_set_pad_all(&on_button_style, 10);
 
-    /* Off button style*/
+    /* Off (clicked) button style*/
     lv_style_set_radius(&off_button_style, 3);
     lv_style_set_bg_opa(&off_button_style, LV_OPA_100);
-    lv_style_set_bg_color(&off_button_style, lv_palette_main(LV_PALETTE_GREY));
+//    lv_style_set_bg_color(&off_button_style, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_bg_color(&off_button_style, lv_color_make(WCC_BUTTON_YELLOW));
     lv_style_set_border_opa(&off_button_style, LV_OPA_40);
     lv_style_set_border_width(&off_button_style, 4);
     lv_style_set_border_color(&off_button_style, lv_palette_darken(LV_PALETTE_GREY, 128));
-    //lv_style_set_shadow_width(&off_button_style, 4);
-    //lv_style_set_shadow_color(&off_button_style, lv_palette_main(LV_PALETTE_GREY));
-    //lv_style_set_shadow_offset_x(&off_button_style, 8);
-    //lv_style_set_shadow_offset_y(&off_button_style, 8);
     lv_style_set_outline_opa(&off_button_style, LV_OPA_COVER);
     lv_style_set_outline_color(&on_button_style, lv_color_black());
     lv_style_set_outline_width(&on_button_style, 2);
     lv_style_set_text_color(&off_button_style, lv_color_black());
     lv_style_set_pad_all(&off_button_style, 10);
+    
+    /* Stop button style */
+    lv_style_set_radius(&stop_button_style, 3);
+    lv_style_set_bg_opa(&stop_button_style, LV_OPA_100);
+//    lv_style_set_bg_color(&off_button_style, lv_palette_main(LV_PALETTE_GREY));
+    lv_style_set_bg_color(&stop_button_style, lv_color_make(WCC_BUTTON_RED));
+    lv_style_set_border_opa(&stop_button_style, LV_OPA_40);
+    lv_style_set_border_width(&stop_button_style, 4);
+    lv_style_set_border_color(&stop_button_style, lv_palette_darken(LV_PALETTE_GREY, 128));
+    lv_style_set_outline_opa(&stop_button_style, LV_OPA_COVER);
+    lv_style_set_outline_color(&stop_button_style, lv_color_black());
+    lv_style_set_outline_width(&stop_button_style, 2);
+    lv_style_set_text_color(&stop_button_style, lv_color_black());
+    lv_style_set_pad_all(&stop_button_style, 10);
 
     /* Duration up/down button style in settings screen */
-    lv_color_t dbc = lv_color_make(0x99, 0x99, 0x99);
-    lv_style_init(&duration_button_style);
     lv_style_set_radius(&duration_button_style, 2);
     lv_style_set_bg_opa(&duration_button_style, LV_OPA_100);
-    lv_style_set_bg_color(&duration_button_style, dbc);
+    lv_style_set_bg_color(&duration_button_style, lv_color_make(WCC_BACKGROUND_GREY));
     lv_style_set_border_opa(&duration_button_style, LV_OPA_40);
     lv_style_set_border_width(&duration_button_style, 1);
     lv_style_set_border_color(&duration_button_style, lv_color_black());
@@ -515,15 +522,15 @@ void setup()
     start_button = lv_btn_create(main_screen);
     lv_obj_remove_style_all(start_button);
     lv_obj_t * start_button_label = lv_label_create(start_button);
-    lv_label_set_text(start_button_label, LV_SYMBOL_PLAY);
+    lv_label_set_text(start_button_label, LV_SYMBOL_PLAY LV_SYMBOL_PAUSE);
     lv_obj_center(start_button_label);
-    lv_obj_set_style_text_font(start_button_label, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(start_button_label, &lv_font_montserrat_20, 0);
     lv_obj_add_flag(start_button, LV_OBJ_FLAG_CHECKABLE);
     lv_obj_remove_flag(start_button, LV_OBJ_FLAG_PRESS_LOCK);
     lv_obj_add_event_cb(start_button, main_button_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_set_width(start_button, 75); 
-    lv_obj_set_height(start_button,75);
-    lv_obj_align(start_button, LV_ALIGN_TOP_LEFT, 30, 85);
+    lv_obj_set_width(start_button, 60); 
+    lv_obj_set_height(start_button, 60);
+    lv_obj_align(start_button, LV_ALIGN_TOP_LEFT, 30, 45);
     /* Apply styles */
     lv_obj_add_style(start_button, &on_button_style, LV_STATE_DEFAULT);
     lv_obj_add_style(start_button, &off_button_style, LV_STATE_CHECKED);
@@ -534,17 +541,17 @@ void setup()
     lv_obj_t * stop_button_label = lv_label_create(stop_button);
     lv_label_set_text(stop_button_label, LV_SYMBOL_STOP);
     lv_obj_center(stop_button_label);
-    lv_obj_set_style_text_font(stop_button_label, &lv_font_montserrat_48, 0);
+    lv_obj_set_style_text_font(stop_button_label, &lv_font_montserrat_20, 0);
     // Stop button is not checkable, does not retain button state.
     // lv_obj_add_flag(stop_button, LV_OBJ_FLAG_CHECKABLE);
     lv_obj_remove_flag(stop_button, LV_OBJ_FLAG_PRESS_LOCK);
     lv_obj_add_event_cb(stop_button, stop_button_event_cb, LV_EVENT_ALL, NULL);
-    lv_obj_set_width(stop_button, 75); 
-    lv_obj_set_height(stop_button,75);
-    lv_obj_align_to(stop_button, start_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+    lv_obj_set_width(stop_button, 60); 
+    lv_obj_set_height(stop_button,60);
+    lv_obj_align_to(stop_button, start_button, LV_ALIGN_OUT_BOTTOM_MID, 0, 10);
 
     /* Apply styles */
-    lv_obj_add_style(stop_button, &on_button_style, LV_STATE_DEFAULT);
+    lv_obj_add_style(stop_button, &stop_button_style, LV_STATE_DEFAULT);
 
     /* Radio Buttons */
     /* 3 radio buttons in a container determine whether we're in clean mode, 
@@ -567,7 +574,7 @@ void setup()
     lv_obj_t * radio_button_container = lv_obj_create(main_screen);
     lv_obj_set_flex_flow(radio_button_container, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_size(radio_button_container, 95, 100);
-    lv_obj_align_to(radio_button_container, stop_button, LV_ALIGN_OUT_RIGHT_MID, 15, 0);
+    lv_obj_align_to(radio_button_container, start_button, LV_ALIGN_OUT_RIGHT_TOP, 60, 0);
     lv_obj_add_event_cb(radio_button_container, radio_event_handler, LV_EVENT_CLICKED, &active_index);
     lv_obj_add_style(radio_button_container, &style_radio_button_container, 0);
 

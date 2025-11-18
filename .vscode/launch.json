@@ -1,0 +1,32 @@
+{
+  "configurations": [
+    {
+      "type": "cppdbg",
+      "request": "launch",
+      "name": "Debug ESP32-C3 Firmware (gdb)",
+      "program": "${input:firmwarePath}",
+      "preLaunchTask": "arduino: build",
+      "miDebuggerPath": "${input:gdbPath}",
+      "miDebuggerServerAddress": "${input:gdbServerAddress}",
+      "MIMode": "gdb",
+      "stopAtEntry": false
+    }
+  ],
+  "inputs": [
+    {
+      "type": "promptString",
+      "id": "firmwarePath",
+      "description": "Path to the ELF firmware to debug (e.g. build/sketch/watch_cleaner_controller.ino.elf)"
+    },
+    {
+      "type": "promptString",
+      "id": "gdbPath",
+      "description": "Path to your GDB executable (e.g. riscv32-unknown-elf-gdb or xtensa-esp32-elf-gdb)"
+    },
+    {
+      "type": "promptString",
+      "id": "gdbServerAddress",
+      "description": "GDB server address to connect to (host:port), e.g. localhost:3333 (leave empty to run local gdb)"
+    }
+  ]
+}

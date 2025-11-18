@@ -13,11 +13,12 @@
 
  /* Externs */
 extern lv_obj_t * main_screen;
-extern lv_obj_t * settings_screen;
-extern lv_obj_t * return_to_main_button;
 extern lv_style_t transparent_button_style;
 extern void wcc_create_title_bar(lv_obj_t * scr, const char * title);
 extern void wcc_set_screen_bg_style(lv_obj_t * scr);
+
+lv_obj_t * settings_screen;
+static lv_obj_t * return_to_main_button;
 
 static void return_to_main_button_event_cb(lv_event_t * event)
 {
@@ -34,6 +35,10 @@ static void return_to_main_button_event_cb(lv_event_t * event)
   }
 }
 
+/*
+    This describes a row in the settings screen that contains
+    item_description up_button down_button time_settings_label
+*/
 static lv_obj_t * create_duration_item(const char * desc)
 {
     // A container for the desc label, buttons, and time label
@@ -56,7 +61,6 @@ static lv_obj_t * create_duration_item(const char * desc)
 
     // Buttons
     extern lv_style_t duration_button_style;
-
 
     lv_obj_t * up_button = lv_btn_create(cont);
     lv_obj_set_width(up_button, 30);
@@ -95,7 +99,6 @@ static lv_obj_t * create_duration_item(const char * desc)
     lv_label_set_text(time_label, "00:00");
     lv_obj_center(time_label);
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_16, 0);
-    
 
     return cont;
 }
@@ -123,7 +126,7 @@ void wcc_create_settings(void)
     // Background
     wcc_set_screen_bg_style(settings_screen);
     // Title Bar
-    wcc_create_title_bar(settings_screen, "Settings");
+    (void)wcc_create_title_bar(settings_screen, "Settings");
 
     // Create return to main button on settings screen 
     return_to_main_button = create_return_to_main_button();
@@ -151,5 +154,7 @@ void wcc_create_settings(void)
     lv_obj_t * spin_up_rate_item_container = create_duration_item("SPIN UP RATE:");
     lv_obj_align_to(spin_up_rate_item_container,
         max_rpm_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
+
+    return;
 
 }

@@ -102,7 +102,7 @@ void wcc_init_and_define_styles()
     lv_style_set_bg_color(&style_radio_chk, lv_color_black());
     
     /* container style */
-    lv_style_set_bg_color(&style_radio_button_container, lv_palette_main(LV_PALETTE_BLUE));
+    lv_style_set_bg_color(&style_radio_button_container, lv_color_white());
     lv_style_set_border_color(&style_radio_button_container, lv_color_black());
     lv_style_set_border_width(&style_radio_button_container, 2);
 

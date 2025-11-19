@@ -122,7 +122,7 @@ static void start_button_event_cb(lv_event_t * event)
   //Serial.printf("Button event is %d\n", code);
   // This is a checked button. 
   // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("main button handler");
+  Serial.println("start button handler");
   switch (g_operating_mode) {
     case OperatingMode::clean:
       Serial.println("Clean mode");
@@ -174,7 +174,6 @@ static void start_button_event_cb(lv_event_t * event)
     }
   }
 }
-
 
 static lv_obj_t * create_start_button(lv_obj_t * scr)
 {
@@ -299,7 +298,9 @@ static void radio_event_handler(lv_event_t * e)
 
     *active_id = lv_obj_get_index(act_cb);
     /* Save the operating mode: clean, rinse or spin */
-    g_operating_mode = static_cast<OperatingMode>(*active_id);
+    /*  active id range is 1 (clean), 2(rinse), 3(spin) - correct for OperatingMode enum values*/
+    int32_t opmode = *active_id - 1;
+    g_operating_mode = static_cast<OperatingMode>(opmode);
 }
 
 static void radio_button_create(lv_obj_t * parent, const char * txt)
@@ -313,18 +314,22 @@ static void radio_button_create(lv_obj_t * parent, const char * txt)
 
 static lv_obj_t * create_mode_selector(lv_obj_t * scr)
 {
-    static int32_t active_index;
+    static int32_t active_index=1;
     lv_obj_t * radio_button_container = lv_obj_create(scr);
+    lv_obj_set_size(radio_button_container, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(radio_button_container, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_size(radio_button_container, 95, 100);
-    lv_obj_align_to(radio_button_container, start_button, LV_ALIGN_OUT_RIGHT_TOP, 60, 0);
+    lv_obj_t * rb_box_label = lv_label_create(radio_button_container);
+    lv_label_set_text(rb_box_label, "Mode Select");
+    lv_obj_set_style_text_font(rb_box_label, &lv_font_montserrat_16, 0);
+    //lv_obj_align(rb_box_label, LV_ALIGN_TOP_MID, 0, 0);
+    lv_obj_align_to(radio_button_container, start_button, LV_ALIGN_OUT_RIGHT_TOP, 50, 0);
     lv_obj_add_event_cb(radio_button_container, radio_event_handler, LV_EVENT_CLICKED, &active_index);
     lv_obj_add_style(radio_button_container, &style_radio_button_container, 0);
 
-    radio_button_create(radio_button_container, "CLEAN");
-    radio_button_create(radio_button_container, "RINSE");
-    radio_button_create(radio_button_container, "SPIN");
-    lv_obj_add_state(lv_obj_get_child(radio_button_container, 0), LV_STATE_CHECKED); 
+    radio_button_create(radio_button_container, "Clean");
+    radio_button_create(radio_button_container, "Rinse");
+    radio_button_create(radio_button_container, "Spin");
+    lv_obj_add_state(lv_obj_get_child(radio_button_container, 1), LV_STATE_CHECKED); 
     return radio_button_container;
 }
 

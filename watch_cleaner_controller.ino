@@ -162,7 +162,7 @@ static void slider_event_cb(lv_event_t * e)
 void setup()
 {
 //    Enable 10s delay for Serial output in setup() function
-//    delay(10000);
+    delay(10000);
     String LVGL_Msg = "Watch Cleaner Controller";
     LVGL_Msg += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
 

@@ -11,14 +11,19 @@
 #include <lvgl.h>
 #include "wcc_common.h"
 
+ /* Defines */
+ #define CLEAN_DUR_DEFAULT (5*60)
+
  /* Externs */
 extern lv_obj_t * main_screen;
 extern lv_style_t transparent_button_style;
 extern void wcc_create_title_bar(lv_obj_t * scr, const char * title);
 extern void wcc_set_screen_bg_style(lv_obj_t * scr);
 
+/* Globals/Statics */
 lv_obj_t * settings_screen;
 static lv_obj_t * return_to_main_button;
+static lv_subject_t clean_duration_int_subject;
 
 static void return_to_main_button_event_cb(lv_event_t * event)
 {
@@ -33,6 +38,23 @@ static void return_to_main_button_event_cb(lv_event_t * event)
     Serial.println("Return button clicked");
     lv_screen_load_anim(main_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
   }
+}
+
+static void up_button_event_cb(lv_event_t * event)
+{
+  lv_obj_t * button = lv_event_get_target_obj(event);
+  lv_event_code_t code = lv_event_get_code(event);
+  lv_subject_t * subj = (lv_subject_t *)lv_event_get_user_data(event);
+
+  //Serial.printf("Button event is %d\n", code);
+  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
+  Serial.println("up button handler");
+  if (code == LV_EVENT_CLICKED) {
+    int32_t val = lv_subject_get_int(subj);
+    val += 1;
+    lv_subject_set_int(subj, val);
+  }
+  // FIXME add LV_EVENT_PRESSED support
 }
 
 /*
@@ -63,6 +85,7 @@ static lv_obj_t * create_duration_item(const char * desc)
     extern lv_style_t duration_button_style;
 
     lv_obj_t * up_button = lv_btn_create(cont);
+    Serial.printf("up_button idx: %d\n", lv_obj_get_index(up_button));
     lv_obj_set_width(up_button, 30);
     lv_obj_set_height(up_button, 30);
     lv_obj_add_style(up_button, &duration_button_style, 0);
@@ -86,6 +109,7 @@ static lv_obj_t * create_duration_item(const char * desc)
 
     // Time display field with white, bordered background
     lv_obj_t * time_label_cont = lv_obj_create(cont);
+    Serial.printf("time_label_cont idx: %d\n", lv_obj_get_index(time_label_cont));
     lv_obj_set_style_bg_color(time_label_cont, lv_color_white(), 0);
     lv_obj_set_style_border_width(time_label_cont, 1, 0);
     lv_obj_set_style_border_color(time_label_cont, lv_color_black(), 0);
@@ -96,6 +120,8 @@ static lv_obj_t * create_duration_item(const char * desc)
     lv_obj_align(time_label_cont, LV_ALIGN_RIGHT_MID, -1, -1);
 
     lv_obj_t * time_label = lv_label_create(time_label_cont);
+    Serial.printf("time_label idx: %d\n", lv_obj_get_index(time_label));
+    lv_obj_set_style_bg_color(time_label_cont, lv_color_white(), 0);
     lv_label_set_text(time_label, "00:00");
     lv_obj_center(time_label);
     lv_obj_set_style_text_font(time_label, &lv_font_montserrat_16, 0);
@@ -119,8 +145,38 @@ static lv_obj_t * create_return_to_main_button()
     return button;
 }
 
+static void format_time(const int32_t in, time_format * out)
+{
+    out->min = in/60;
+    out->sec = in%60;
+    // out->sec will be zero if in < 60
+    if (out->min == 0 && out->sec ==0 ) {
+        out->sec = in;
+    }
+}
+
+static void  update_time_label_cb(lv_observer_t * observer, lv_subject_t * subj)
+{
+    lv_obj_t * label =(lv_obj_t *)lv_observer_get_user_data(observer);
+    LV_ASSERT_NULL(label);
+    int32_t value = lv_subject_get_int(subj);
+    time_format tm;
+    format_time(value, &tm);
+    lv_label_set_text_fmt(label,TIME_FORMAT, tm.min, tm.sec);
+}
+
+static void create_data_binding(lv_obj_t * cont, lv_subject_t * subj)
+{
+    lv_obj_t * labcont = lv_obj_get_child(cont, 3); 
+    lv_obj_t * label = lv_obj_get_child(labcont, 0);
+    LV_ASSERT(lv_obj_check_type(label, &lv_label_class));
+    lv_subject_add_observer(subj, update_time_label_cb, label);
+}
+
 void wcc_create_settings(void)
 {
+    lv_obj_t * label, *button, *cont;
+
     settings_screen = lv_obj_create(NULL);
 
     // Background
@@ -134,6 +190,24 @@ void wcc_create_settings(void)
 
     lv_obj_t * clean_duration_item_container = create_duration_item("CLEAN DURATION:");
     lv_obj_align(clean_duration_item_container, LV_ALIGN_TOP_LEFT, 0, 36);
+
+    // This binds the settings value to the label using subject/observer pattern
+    // The up/down button callback just updates the subject value and the label is updated
+    // via a label callback
+
+    // Initialize the subject variable
+    lv_subject_init_int(&clean_duration_int_subject, CLEAN_DUR_DEFAULT); 
+    // Initialize the settings display
+    cont = lv_obj_get_child(clean_duration_item_container, 3);
+    LV_ASSERT(lv_obj_check_type(cont, &lv_obj_class));
+    label = lv_obj_get_child(cont, 0);
+    LV_ASSERT(lv_obj_check_type(label, &lv_label_class));
+    lv_label_set_text_fmt(label, "%d", CLEAN_DUR_DEFAULT);
+    // Define the button actions for this container
+    button = lv_obj_get_child(clean_duration_item_container, 1);
+    LV_ASSERT(lv_obj_check_type(button, &lv_button_class));
+    lv_obj_add_event_cb(button, up_button_event_cb, LV_EVENT_ALL, &clean_duration_int_subject);
+    create_data_binding(clean_duration_item_container, &clean_duration_int_subject);
 
     lv_obj_t * rinse_duration_item_container = create_duration_item("RINSE DURATION:");
     lv_obj_align_to(rinse_duration_item_container, 

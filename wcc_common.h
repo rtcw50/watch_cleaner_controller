@@ -14,11 +14,17 @@
 #define WCC_BUTTON_GREEN 0x6f,0xe0,0x00
 #define WCC_BUTTON_RED 0xff,0x28,0x28
 #define WCC_BUTTON_YELLOW 0xff,0xff,0x78
+#define TIME_FORMAT "%02d:%02d"
 
 enum class OperatingMode {
   clean,
   rinse,
   spin
 };
+
+typedef struct time_format {
+  int32_t min;
+  int32_t sec;
+} time_format;
 
 #endif

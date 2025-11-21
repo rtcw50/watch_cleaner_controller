@@ -31,12 +31,13 @@
 /* Globals/Statics */
 lv_obj_t * settings_screen;
 static lv_obj_t * return_to_main_button;
-static lv_subject_t clean_duration_int_subject;
-static lv_subject_t rinse_duration_int_subject;
-static lv_subject_t spin_duration_int_subject;
-static lv_subject_t agitate_duration_int_subject;
-static lv_subject_t max_rpm_int_subject;
-static lv_subject_t spin_up_rate_int_subject; 
+
+lv_subject_t clean_duration_int_subject;
+lv_subject_t rinse_duration_int_subject;
+lv_subject_t spin_duration_int_subject;
+lv_subject_t agitate_duration_int_subject;
+lv_subject_t max_rpm_int_subject;
+lv_subject_t spin_up_rate_int_subject; 
 
 static void update_time_label_cb(lv_observer_t *, lv_subject_t *);
 static void update_generic_label_cb(lv_observer_t *, lv_subject_t *);

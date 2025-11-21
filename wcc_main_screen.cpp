@@ -21,9 +21,12 @@ extern lv_style_t style_radio_chk;
 extern enum class OperatingMode g_operating_mode; 
 extern lv_obj_t * settings_screen;
 extern lv_obj_t * main_screen;
+extern lv_subject_t clean_duration_int_subject;
+extern lv_subject_t rinse_duration_int_subject;
+extern lv_subject_t spin_duration_int_subject;
 
-#define MAIN_CYCLE_REPEAT_COUNT 62 
-static uint32_t g_periods_remaining = MAIN_CYCLE_REPEAT_COUNT; 
+//#define MAIN_CYCLE_REPEAT_COUNT 62 
+static uint32_t g_periods_remaining; // = MAIN_CYCLE_REPEAT_COUNT; 
 
 static char *Mach_Status_Text_Stopped = "Stopped ...";
 static char *Mach_Status_Text_Running = "Running ...";
@@ -113,6 +116,24 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
     clear_time_remaining_label(NULL);
   }
 }
+
+static lv_subject_t * get_timer_subject()
+{
+  if (g_operating_mode == OperatingMode::clean) {
+    return &clean_duration_int_subject;
+  }
+  else if (g_operating_mode == OperatingMode::rinse) {
+    return &rinse_duration_int_subject;
+  }
+  else if (g_operating_mode == OperatingMode::spin) {
+    return &spin_duration_int_subject;
+  }
+  else {
+    LV_ASSERT_MSG(false, "Unknown Operating Mode");
+    return NULL;
+  }
+}
+
 static void start_button_event_cb(lv_event_t * event)
 {
   lv_obj_t * button = lv_event_get_target_obj(event);
@@ -123,19 +144,6 @@ static void start_button_event_cb(lv_event_t * event)
   // This is a checked button. 
   // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
   Serial.println("start button handler");
-  switch (g_operating_mode) {
-    case OperatingMode::clean:
-      Serial.println("Clean mode");
-      break;
-    case OperatingMode::rinse:
-      Serial.println("Rinse mode");
-      break;
-    case OperatingMode::spin:
-      Serial.println("Spin mode");
-      break;
-    default:
-      LV_ASSERT(false);
-  }
 
   // Change back to start mode, if checked already
   // I use strcmp instead of button state because timing of state change
@@ -153,7 +161,10 @@ static void start_button_event_cb(lv_event_t * event)
     
       /* If timer doesn't exist, create and start it */
       if (clean_rinse_timer == NULL) {
-        g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT + 1; /* 1 second per period */
+        //g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT + 1; /* 1 second per period */
+        lv_subject_t * timer_duration_subject = get_timer_subject();
+        LV_ASSERT_NULL(timer_duration_subject);
+        g_periods_remaining=lv_subject_get_int(timer_duration_subject) + 1; /* 1 second per period */
         clean_rinse_timer = lv_timer_create(clean_rinse_timer_cb, 1000 /* ms*/, &g_periods_remaining);
         lv_timer_set_repeat_count(clean_rinse_timer, g_periods_remaining);
         lv_label_set_text(mach_status_label, Mach_Status_Text_Running);

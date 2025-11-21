@@ -13,6 +13,81 @@
 
  /* Defines */
  #define CLEAN_DUR_DEFAULT (5*60)
+ #define RINSE_DUR_DEFAULT (3*60)
+ #define SPIN_DUR_DEFAULT  (1*60) 
+ #define AGITATE_DUR_DEFAULT (10)
+ #define MAX_RPM_DEFAULT (600)
+ #define SPIN_UP_DEFAULT (3)
+
+ /* Structs */
+ typedef struct data_binding_info {
+    lv_subject_t *subject;
+    int32_t default_value;
+    int32_t update_increment; 
+    lv_observer_cb_t label_updater;
+ } data_binding_info;
+
+
+/* Globals/Statics */
+lv_obj_t * settings_screen;
+static lv_obj_t * return_to_main_button;
+static lv_subject_t clean_duration_int_subject;
+static lv_subject_t rinse_duration_int_subject;
+static lv_subject_t spin_duration_int_subject;
+static lv_subject_t agitate_duration_int_subject;
+static lv_subject_t max_rpm_int_subject;
+static lv_subject_t spin_up_rate_int_subject; 
+
+static void update_time_label_cb(lv_observer_t *, lv_subject_t *);
+static void update_generic_label_cb(lv_observer_t *, lv_subject_t *);
+
+typedef enum {
+    WCC_CLEAN = 0,
+    WCC_RINSE,
+    WCC_SPIN,
+    WCC_AGITATE,
+    WCC_RPM,
+    WCC_SPINUP
+} wcc_data_binding_info_t;
+
+static data_binding_info dbi[] = {
+    { 
+        .subject = &clean_duration_int_subject,
+        .default_value = CLEAN_DUR_DEFAULT,
+        .update_increment = 30,
+        .label_updater = update_time_label_cb
+    },
+    { 
+        .subject = &rinse_duration_int_subject,
+        .default_value = RINSE_DUR_DEFAULT,
+        .update_increment = 10,
+        .label_updater = update_time_label_cb
+    },
+    { 
+        .subject = &spin_duration_int_subject,
+        .default_value = SPIN_DUR_DEFAULT,
+        .update_increment = 10,
+        .label_updater = update_time_label_cb
+    },
+    { 
+        .subject = &agitate_duration_int_subject,
+        .default_value = AGITATE_DUR_DEFAULT,
+        .update_increment = 1,
+        .label_updater = update_time_label_cb
+    },
+    { 
+        .subject = &max_rpm_int_subject,
+        .default_value = MAX_RPM_DEFAULT,
+        .update_increment = 50,
+        .label_updater = update_generic_label_cb
+    },
+    { 
+        .subject = &spin_up_rate_int_subject,
+        .default_value = SPIN_UP_DEFAULT,
+        .update_increment = 1,
+        .label_updater = update_time_label_cb
+    }
+};
 
  /* Externs */
 extern lv_obj_t * main_screen;
@@ -20,10 +95,9 @@ extern lv_style_t transparent_button_style;
 extern void wcc_create_title_bar(lv_obj_t * scr, const char * title);
 extern void wcc_set_screen_bg_style(lv_obj_t * scr);
 
-/* Globals/Statics */
-lv_obj_t * settings_screen;
-static lv_obj_t * return_to_main_button;
-static lv_subject_t clean_duration_int_subject;
+/* Public functions */
+void wcc_create_settings(void);
+void wcc_wait(uint32_t wait_time);
 
 static void return_to_main_button_event_cb(lv_event_t * event)
 {
@@ -44,17 +118,33 @@ static void up_button_event_cb(lv_event_t * event)
 {
   lv_obj_t * button = lv_event_get_target_obj(event);
   lv_event_code_t code = lv_event_get_code(event);
-  lv_subject_t * subj = (lv_subject_t *)lv_event_get_user_data(event);
+  //lv_subject_t * subj = (lv_subject_t *)lv_event_get_user_data(event);
+  data_binding_info * dbi  = (data_binding_info *)lv_event_get_user_data(event);
+  int32_t val = lv_subject_get_int(dbi->subject);
 
-  //Serial.printf("Button event is %d\n", code);
-  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("up button handler");
-  if (code == LV_EVENT_CLICKED) {
-    int32_t val = lv_subject_get_int(subj);
-    val += 1;
-    lv_subject_set_int(subj, val);
-  }
-  // FIXME add LV_EVENT_PRESSED support
+//  Serial.printf("Button event is %d\n", code);
+//  Serial.println("up button handler");
+//  FIXME: add LV_EVENT_LONG_PRESSED_REPEAT support for quick changing
+//  values. There's seems to be a problem with SHORT_CLICKED events
+//  intermixed with LONG_PRESSED_REPEAT events.  
+//  For now, just update by +/- 30 sec increments.
+    val += dbi->update_increment;
+    lv_subject_set_int(dbi->subject, val);
+}
+
+static void down_button_event_cb(lv_event_t * event)
+{
+  lv_obj_t * button = lv_event_get_target_obj(event);
+  lv_event_code_t code = lv_event_get_code(event);
+  data_binding_info * dbi = (data_binding_info *)lv_event_get_user_data(event);
+  int32_t val = lv_subject_get_int(dbi->subject);
+
+  //Serial.println("down button handler");
+  //Serial.printf("down button event is %d\n", code);
+  val -= dbi->update_increment;
+  // time setting value bottoms out at zero
+  val = val <= 0 ? 0 : val;
+  lv_subject_set_int(dbi->subject, val);
 }
 
 /*
@@ -165,17 +255,60 @@ static void  update_time_label_cb(lv_observer_t * observer, lv_subject_t * subj)
     lv_label_set_text_fmt(label,TIME_FORMAT, tm.min, tm.sec);
 }
 
-static void create_data_binding(lv_obj_t * cont, lv_subject_t * subj)
+static void  update_generic_label_cb(lv_observer_t * observer, lv_subject_t * subj)
 {
-    lv_obj_t * labcont = lv_obj_get_child(cont, 3); 
-    lv_obj_t * label = lv_obj_get_child(labcont, 0);
+    lv_obj_t * label =(lv_obj_t *)lv_observer_get_user_data(observer);
+    LV_ASSERT_NULL(label);
+    int32_t value = lv_subject_get_int(subj);
+    lv_label_set_text_fmt(label,"%5d", value);
+}
+
+
+static void get_duration_item_buttons_and_label(const lv_obj_t * dur_cont, lv_obj_t ** ubutton, lv_obj_t ** dbutton, lv_obj_t ** label)
+{
+    lv_obj_t * cont;
+
+    // The time label is in a container
+    cont = lv_obj_get_child(dur_cont, 3);
+    LV_ASSERT(lv_obj_check_type(cont, &lv_obj_class));
+    *label = lv_obj_get_child(cont, 0);
+    LV_ASSERT(lv_obj_check_type(*label, &lv_label_class));
+    *ubutton = lv_obj_get_child(dur_cont, 1);
+    LV_ASSERT(lv_obj_check_type(*ubutton, &lv_button_class));
+    *dbutton = lv_obj_get_child(dur_cont, 2);
+    LV_ASSERT(lv_obj_check_type(*dbutton, &lv_button_class));
+}
+
+static void create_data_binding(lv_obj_t * cont, data_binding_info *dbi)
+{
+    lv_obj_t *ubutton, *dbutton, *label;
+    // Define button actions and data/label bindings
+    get_duration_item_buttons_and_label(cont, &ubutton, &dbutton, &label);
+    LV_ASSERT(lv_obj_check_type(ubutton, &lv_button_class));
+    LV_ASSERT(lv_obj_check_type(dbutton, &lv_button_class));
     LV_ASSERT(lv_obj_check_type(label, &lv_label_class));
-    lv_subject_add_observer(subj, update_time_label_cb, label);
+    // Init subject
+    lv_subject_init_int(dbi->subject, dbi->default_value);
+    lv_obj_add_event_cb(ubutton, up_button_event_cb, LV_EVENT_SHORT_CLICKED, dbi);
+    lv_obj_add_event_cb(dbutton, down_button_event_cb, LV_EVENT_SHORT_CLICKED, dbi);
+
+    lv_observer_t * observer = lv_subject_add_observer(dbi->subject, dbi->label_updater, label);
+    // init label
+    dbi->label_updater(observer, dbi->subject);
+}
+
+void wcc_wait(uint32_t wait_time)
+{
+    uint32_t t1 = millis();
+    uint32_t t2;
+    do {
+        t2 = millis();
+    } while ( (t2-t1) < wait_time );
 }
 
 void wcc_create_settings(void)
 {
-    lv_obj_t * label, *button, *cont;
+    lv_obj_t * label, *ubutton, *dbutton; 
 
     settings_screen = lv_obj_create(NULL);
 
@@ -194,40 +327,32 @@ void wcc_create_settings(void)
     // This binds the settings value to the label using subject/observer pattern
     // The up/down button callback just updates the subject value and the label is updated
     // via a label callback
-
-    // Initialize the subject variable
-    lv_subject_init_int(&clean_duration_int_subject, CLEAN_DUR_DEFAULT); 
-    // Initialize the settings display
-    cont = lv_obj_get_child(clean_duration_item_container, 3);
-    LV_ASSERT(lv_obj_check_type(cont, &lv_obj_class));
-    label = lv_obj_get_child(cont, 0);
-    LV_ASSERT(lv_obj_check_type(label, &lv_label_class));
-    lv_label_set_text_fmt(label, "%d", CLEAN_DUR_DEFAULT);
-    // Define the button actions for this container
-    button = lv_obj_get_child(clean_duration_item_container, 1);
-    LV_ASSERT(lv_obj_check_type(button, &lv_button_class));
-    lv_obj_add_event_cb(button, up_button_event_cb, LV_EVENT_ALL, &clean_duration_int_subject);
-    create_data_binding(clean_duration_item_container, &clean_duration_int_subject);
+    create_data_binding(clean_duration_item_container, &dbi[WCC_CLEAN]);
 
     lv_obj_t * rinse_duration_item_container = create_duration_item("RINSE DURATION:");
     lv_obj_align_to(rinse_duration_item_container, 
         clean_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+    create_data_binding(rinse_duration_item_container, &dbi[WCC_RINSE]);
 
     lv_obj_t * spin_duration_item_container = create_duration_item("SPIN DURATION:");
     lv_obj_align_to(spin_duration_item_container, 
         rinse_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2);
+    create_data_binding(spin_duration_item_container, &dbi[WCC_SPIN]);
 
     lv_obj_t * agitate_duration_item_container = create_duration_item("AGITATE DURATION:");
     lv_obj_align_to(agitate_duration_item_container,
         spin_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
+    create_data_binding(agitate_duration_item_container, &dbi[WCC_AGITATE]);
 
     lv_obj_t * max_rpm_item_container = create_duration_item("MAX RPM:");
     lv_obj_align_to(max_rpm_item_container,
         agitate_duration_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
+    create_data_binding(max_rpm_item_container, &dbi[WCC_RPM]);
 
     lv_obj_t * spin_up_rate_item_container = create_duration_item("SPIN UP RATE:");
     lv_obj_align_to(spin_up_rate_item_container,
         max_rpm_item_container, LV_ALIGN_OUT_BOTTOM_MID, 0, 2); 
+    create_data_binding(spin_up_rate_item_container, &dbi[WCC_SPINUP]);
 
     return;
 

@@ -11,20 +11,15 @@
 #include <lvgl.h>
 #include "wcc_common.h"
 
- /* Defines */
- #define CLEAN_DUR_DEFAULT (5*60)
- #define RINSE_DUR_DEFAULT (3*60)
- #define SPIN_DUR_DEFAULT  (1*60) 
- #define AGITATE_DUR_DEFAULT (10)
- #define MAX_RPM_DEFAULT (600)
- #define SPIN_UP_DEFAULT (3)
 
  /* Structs */
  typedef struct data_binding_info {
     lv_subject_t *subject;
     int32_t default_value;
+    int32_t max_value;
     int32_t update_increment; 
     lv_observer_cb_t label_updater;
+    lv_observer_cb_t calculator;
  } data_binding_info;
 
 
@@ -39,8 +34,11 @@ lv_subject_t agitate_duration_int_subject;
 lv_subject_t max_rpm_int_subject;
 lv_subject_t spin_up_rate_int_subject; 
 
+pwm_info pwm_values;
+
 static void update_time_label_cb(lv_observer_t *, lv_subject_t *);
 static void update_generic_label_cb(lv_observer_t *, lv_subject_t *);
+static void update_pwm_values_cb(lv_observer_t *, lv_subject_t *);
 
 typedef enum {
     WCC_CLEAN = 0,
@@ -55,38 +53,50 @@ static data_binding_info dbi[] = {
     { 
         .subject = &clean_duration_int_subject,
         .default_value = CLEAN_DUR_DEFAULT,
+        .max_value = CLEAN_DUR_MAX,
         .update_increment = 30,
-        .label_updater = update_time_label_cb
+        .label_updater = update_time_label_cb,
+        .calculator = NULL
     },
     { 
         .subject = &rinse_duration_int_subject,
         .default_value = RINSE_DUR_DEFAULT,
+        .max_value = RINSE_DUR_MAX,
         .update_increment = 10,
-        .label_updater = update_time_label_cb
+        .label_updater = update_time_label_cb,
+        .calculator = NULL
     },
     { 
         .subject = &spin_duration_int_subject,
         .default_value = SPIN_DUR_DEFAULT,
+        .max_value = SPIN_DUR_MAX,
         .update_increment = 10,
-        .label_updater = update_time_label_cb
+        .label_updater = update_time_label_cb,
+        .calculator = NULL
     },
     { 
         .subject = &agitate_duration_int_subject,
         .default_value = AGITATE_DUR_DEFAULT,
+        .max_value = AGITATE_DUR_MAX,
         .update_increment = 1,
-        .label_updater = update_time_label_cb
+        .label_updater = update_time_label_cb,
+        .calculator = NULL
     },
     { 
         .subject = &max_rpm_int_subject,
         .default_value = MAX_RPM_DEFAULT,
+        .max_value = MAX_RPM_MAX,
         .update_increment = 50,
-        .label_updater = update_generic_label_cb
+        .label_updater = update_generic_label_cb,
+        .calculator = update_pwm_values_cb 
     },
     { 
         .subject = &spin_up_rate_int_subject,
         .default_value = SPIN_UP_DEFAULT,
+        .max_value = SPIN_UP_MAX,
         .update_increment = 1,
-        .label_updater = update_time_label_cb
+        .label_updater = update_time_label_cb,
+        .calculator = update_pwm_values_cb 
     }
 };
 
@@ -115,6 +125,38 @@ static void return_to_main_button_event_cb(lv_event_t * event)
   }
 }
 
+/* 
+    Calculate the PWM values given an RPM setting.
+    Calculate the PWM increment value to slow accelerate or decelerate the
+    motor to its RPM setting. We cannot accelerate/decelerate in a for loop
+    because it takes too long causes the UI to be unresponsive. We'll 
+    gradually accelerate/decelerate via a timer callback whose time out time is
+    10ms, accelerating or decelerating at a given step value at each timer timeout.
+
+    The RPM PWM setting is easy, map the RPM value between 0,MAX_RPM to 0,255
+    as is normal for a PWM pin.
+    The increment value is the number of units to increment the PWM value so that
+    at 10ms, the cumulative number of units creeps toward the RPM setting. The effect is
+    to ramp up/down the motor to the final RPM value. The increment value
+    is based on how many seconds (spin up setting) we take to get to full speed 
+    or 0 from full speed. 
+*/
+static void update_pwm_values_cb(lv_observer_t * observer, lv_subject_t * subject)
+{
+    pwm_info * pwmi = (pwm_info *)lv_observer_get_user_data(observer);
+    LV_ASSERT_NULL(pwmi);
+
+    // Update the RPM PWM value
+    pwmi->pwm_rpm = map(lv_subject_get_int(&max_rpm_int_subject), 0, MAX_RPM_MAX, 0, 255); 
+
+    // Update the pwm increment value
+    int32_t spin_up_rate = lv_subject_get_int(&spin_up_rate_int_subject);
+    int32_t pwm_units = spin_up_rate * RAMP_UPDATE_STEPS_PER_SECOND;  // Number of steps to ramp motor up; 
+    // This many increments will get to the rpm pwm setting
+    pwmi->pwm_increment = map(pwm_units, 0, (SPIN_UP_MAX*RAMP_UPDATE_STEPS_PER_SECOND), 0, pwmi->pwm_rpm);
+    return;
+}
+
 static void up_button_event_cb(lv_event_t * event)
 {
   lv_obj_t * button = lv_event_get_target_obj(event);
@@ -130,6 +172,7 @@ static void up_button_event_cb(lv_event_t * event)
 //  intermixed with LONG_PRESSED_REPEAT events.  
 //  For now, just update by +/- 30 sec increments.
     val += dbi->update_increment;
+    val = val >= dbi->max_value ? dbi->max_value : val;
     lv_subject_set_int(dbi->subject, val);
 }
 
@@ -294,8 +337,10 @@ static void create_data_binding(lv_obj_t * cont, data_binding_info *dbi)
     lv_obj_add_event_cb(dbutton, down_button_event_cb, LV_EVENT_SHORT_CLICKED, dbi);
 
     lv_observer_t * observer = lv_subject_add_observer(dbi->subject, dbi->label_updater, label);
-    // init label
+    // init label -- may not be necessary.
     dbi->label_updater(observer, dbi->subject);
+    // PWM values need to be calculated when either RPM setting or Spin Up setting.
+    lv_observer_t * observer2 = lv_subject_add_observer(dbi->subject, dbi->calculator, &pwm_values);
 }
 
 void wcc_wait(uint32_t wait_time)

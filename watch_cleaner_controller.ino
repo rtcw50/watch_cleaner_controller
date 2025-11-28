@@ -61,6 +61,7 @@ extern void wcc_create_main_screen_widgets();
 extern void wcc_init_and_define_styles(void);
 extern void wcc_set_screen_bg_style(lv_obj_t * scr);
 extern void wcc_create_settings(void);
+extern void wcc_drv8871_init_in_pins(uint8_t p1, uint8_t p2);
 
 /* Create the TFT_eSPI object used for touch calibration.
    The TFT_eSPI object is always created with the canonical
@@ -68,9 +69,10 @@ extern void wcc_create_settings(void);
  */
 TFT_eSPI tft = TFT_eSPI(SCREEN_WIDTH, SCREEN_HEIGHT); 
 
-/* Global Widget Objects */
+/* Globals */
 lv_obj_t * main_screen;
 OperatingMode g_operating_mode;
+OperatingState g_operating_state;
 
 #if LV_USE_LOG != 0
 void my_print( lv_log_level_t level, const char * buf )
@@ -166,9 +168,14 @@ void setup()
     String LVGL_Msg = "Watch Cleaner Controller";
     LVGL_Msg += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
 
+
     Serial.begin( 115200 );
     Serial.println( LVGL_Msg );
     Serial.printf("Arduino Stack was set to %d bytes", getArduinoLoopTaskStackSize());
+
+    wcc_drv8871_init_in_pins(D3,D6);
+    g_operating_mode = OperatingMode::clean;     // Default mode selection
+    g_operating_state = OperatingState::stopped; // Default motor state 
 
     lv_init();
 
@@ -304,4 +311,21 @@ void touch_calibrate()
       f.close();
     }
   }
+}
+
+void wcc_ramp_up_motor( int32_t spin_up_time, int32_t max_rpm)
+{
+
+}
+
+void wcc_ramp_down_motor( int32_t spin_up_time)
+{
+
+}
+
+void wcc_reverse_motor(int32_t spin_up_time, int32_t max_rpm)
+{
+  // ramp_down
+  // invert inputs
+  // ramp up
 }

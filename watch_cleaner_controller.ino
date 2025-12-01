@@ -173,6 +173,7 @@ void setup()
     Serial.println( LVGL_Msg );
     Serial.printf("Arduino Stack was set to %d bytes", getArduinoLoopTaskStackSize());
 
+    // Note: Pin D4 was inoperable on my test device.
     wcc_drv8871_init_in_pins(D3,D6);
     g_operating_mode = OperatingMode::clean;     // Default mode selection
     g_operating_state = OperatingState::stopped; // Default motor state 

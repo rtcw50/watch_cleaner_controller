@@ -54,7 +54,7 @@ static void ramp_up_internal_cb(lv_timer_t * motor_timer)
         return;
     }
 
-    Serial.printf("ramp_up_int: AW (%d) on %d\n", tracker_data->rpm_tracker, (in2-2));
+    //Serial.printf("ramp_up_int: AW (%d) on %d\n", tracker_data->rpm_tracker, (in2-2));
     analogWrite(in2, tracker_data->rpm_tracker);
 
     tracker_data->rpm_tracker += pwm_values.pwm_increment; 
@@ -66,10 +66,10 @@ static void ramp_up_internal_cb(lv_timer_t * motor_timer)
         if (tracker_data->on_done != NULL) {
             tracker_data->on_done();
         }
+        // Set driving pin to final pulse width 
+        analogWrite(in2, pwm_values.pwm_rpm);
         g_operating_state = OperatingState::running;
-
-        Serial.println("ramp_up_complete");
-    digitalWrite(D6, HIGH);
+        Serial.printf("ramp_up_complete: in1=%d, in2=%d\n", in1, in2);
     }
 }
 
@@ -87,21 +87,25 @@ static void ramp_down_internal_cb(lv_timer_t * motor_timer)
         return;
     }
 
-    Serial.printf("ramp_down_int: AW(%d) on %d\n", tracker_data->rpm_tracker, (in2-2));
+    //Serial.printf("ramp_down_int: AW(%d) on %d\n", tracker_data->rpm_tracker, (in2-2));
     analogWrite(in2, tracker_data->rpm_tracker);
 
     tracker_data->rpm_tracker -= pwm_values.pwm_increment; 
 
     if (tracker_data->rpm_tracker < 0) {
-        // done ramping down
+        // Complete the ramp down 
+        // Set driving pin to a static value
+        LV_ASSERT(ledcDetach(in2) == true); // Stop PWM on pin
+        pinMode(in2,OUTPUT);
+        digitalWrite(in2, LOW); 
+
         lv_timer_delete(motor_timer); // Alias for ramp_down_timer
         ramp_down_timer = NULL; // Nullify reference to motor timer
         if (tracker_data->on_done != NULL) {
-            tracker_data->on_done();
+            tracker_data->on_done(); // reverse inputs 
         }
         g_operating_state = OperatingState::stopped;
-        Serial.println("ramp_down_complete");
-    digitalWrite(D6, LOW);
+        Serial.printf("ramp_down_complete: in1=%d, in2=%d\n", in1, in2);
     }
 }
 
@@ -115,15 +119,7 @@ static void ramp_motor_up(lv_timer_cb_t ramp_cb, wcc_cb_t action_on_done)
     tracker_data.on_done = action_on_done;
     
     // Write one input to static level 
-    #if 0
-    for (int32_t i = 0; i<10; i++) {
-        digitalWrite(D4, LOW);
-        delay(10);
-        digitalWrite(D4,HIGH);
-        delay(10);
-    }
-    #endif
-    // digitalWrite(in1,LOW);
+    digitalWrite(in1,LOW);
 
     if (ramp_up_timer == NULL) {
         //Serial.println("timer created");
@@ -150,13 +146,13 @@ static void ramp_motor_down(lv_timer_cb_t ramp_cb, wcc_cb_t action_on_done)
 
 void wcc_drv8871_ramp_up()
 {
-    Serial.println("ramp up");
+    //Serial.println("ramp up");
     ramp_motor_up(ramp_up_internal_cb, NULL);
 }
 
 void wcc_drv8871_ramp_down(boolean invert_driver_pins)
 {
-    Serial.println("ramp down");
+    //Serial.println("ramp down");
     if (invert_driver_pins) {
         ramp_motor_down(ramp_down_internal_cb, invert_in_pins);
     }
@@ -180,6 +176,4 @@ void wcc_drv8871_init_in_pins(uint8_t p1, uint8_t p2)
     digitalWrite(in1,LOW);
     digitalWrite(in2,LOW);
     
-    pinMode(D6,OUTPUT);
-    digitalWrite(D6, LOW);
 }

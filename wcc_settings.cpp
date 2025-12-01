@@ -117,8 +117,6 @@ static void return_to_main_button_event_cb(lv_event_t * event)
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
   //Serial.printf("Button event is %d\n", code);
-  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("Return button handler");
   if (code == LV_EVENT_CLICKED) {
     Serial.println("Return button clicked");
     lv_screen_load_anim(main_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
@@ -153,7 +151,7 @@ static void update_pwm_values_cb(lv_observer_t * observer, lv_subject_t * subjec
     int32_t spin_up_rate = lv_subject_get_int(&spin_up_rate_int_subject);
     int32_t pwm_units = spin_up_rate * RAMP_UPDATE_STEPS_PER_SECOND;  // Number of steps to ramp motor up; 
     // This many increments will get to the rpm pwm setting
-    pwmi->pwm_increment = map(pwm_units, 0, (SPIN_UP_MAX*RAMP_UPDATE_STEPS_PER_SECOND), 0, pwmi->pwm_rpm);
+    pwmi->pwm_increment = pwmi->pwm_rpm / pwm_units; // Integer division is fine here
     return;
 }
 

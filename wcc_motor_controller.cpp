@@ -115,7 +115,7 @@ static void ramp_motor_up(lv_timer_cb_t ramp_cb, wcc_cb_t action_on_done)
     // Starting value for the tracking variable 
     static int32_t rpm_tracker;
     static ramp_user_data tracker_data;
-    tracker_data.rpm_tracker = 0;
+    tracker_data.rpm_tracker = 10; // Start from low rpm, not zero to avoid single pulse issue 
     tracker_data.on_done = action_on_done;
     
     // Write one input to static level 

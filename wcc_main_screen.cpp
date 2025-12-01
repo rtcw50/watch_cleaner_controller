@@ -126,12 +126,11 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
     clean_rinse_timer = NULL;
     lv_obj_t * label = lv_obj_get_child(start_button, 0);  // Label of button
 
-    // Timer should only be running in RUN mode, i.e. start button in checked state
-    // Motor must be running
-    LV_ASSERT(g_operating_state == OperatingState::running);
+    //LV_ASSERT(g_operating_state == OperatingState::running);
     LV_ASSERT(lv_obj_has_state(start_button,LV_STATE_CHECKED));
     // Transition to stopped state
-    // Stop the motor
+    // Stop the motor or finish in process of ramping up/down
+    Serial.println("final ramp down from timer");
     wcc_drv8871_ramp_down(false /* do not invert driver pins*/);
 
     // Manually change the start button back to unchecked state and update the label
@@ -165,22 +164,20 @@ static void start_button_event_cb(lv_event_t * event)
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
-  //Serial.printf("Button event is %d\n", code);
-  // This is a checked button. 
-  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("start button handler");
+  // start button is a checked button. 
 
   // Change back to start mode, if checked already
   // I use strcmp instead of button state because timing of state change
   // button callback is not deterministic in my experiements
   if (code == LV_EVENT_VALUE_CHANGED) {
-    Serial.printf("Button state: %d\n", lv_obj_get_state(start_button));
     // "play" button is clicked, changes to "pause" icon, but running state
     if (lv_obj_has_state(start_button, LV_STATE_CHECKED)) {
+      Serial.printf("Start button: (run-pause to pause icon ) %s\n", lv_obj_has_state(start_button,LV_STATE_CHECKED) ? "checked" : "not checked");
       // Set button to PAUSE and create or resume the timer
       lv_label_set_text(label,LV_SYMBOL_PAUSE);
 
       // Set motor state to running
+      Serial.println("ramp up event value changed");
       wcc_drv8871_ramp_up();
 
     /* Timers are used to control the duration of the clean/rinse cycle.
@@ -204,9 +201,11 @@ static void start_button_event_cb(lv_event_t * event)
 
     } 
     else {  // "pause" button is clicked 
+      Serial.printf("Start button (pause to play icon): %s\n", lv_obj_has_state(start_button,LV_STATE_CHECKED) ? "checked" : "not checked");
       lv_label_set_text(label,LV_SYMBOL_PLAY);
       lv_label_set_text(mach_status_label,Mach_Status_Text_Paused);
       format_and_publish_time_remaining(g_periods_remaining);
+      Serial.println("ramp down from pause button");
       wcc_drv8871_ramp_down(false /* do not invert driver pins */);
       // Manually pause the timer.
       if (clean_rinse_timer != NULL) {
@@ -247,10 +246,11 @@ static void stop_button_event_cb(lv_event_t * event)
 
   //Serial.printf("Button event is %d\n", code);
   // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("Stop button handler");
   if (code == LV_EVENT_CLICKED) {
+    Serial.println("Stop button clicked");
     // The duration timer is active (running or paused)
     if (clean_rinse_timer != NULL) {
+      Serial.println("ramp down from stop button");
       wcc_drv8871_ramp_down(false /* do not invert driver pins */);
       lv_timer_delete(clean_rinse_timer);
       clean_rinse_timer = NULL;
@@ -292,13 +292,6 @@ static void settings_button_event_cb(lv_event_t * event)
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
-  //Serial.printf("Button event is %d\n", code);
-  // This is a checked button. 
-  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
-  Serial.println("Settings button handler");
-  // Change back to start mode, if checked already
-  // I use strcmp instead of button state because timing of state change
-  // button callback is not deterministic in my experiements
   if (code == LV_EVENT_CLICKED) {
     Serial.println("Settings button clicked");
     lv_screen_load_anim(settings_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );

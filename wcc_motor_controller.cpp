@@ -83,7 +83,7 @@ static void ramp_down_internal_cb(lv_timer_t * motor_timer)
     // But it makes no sense for one timer cb to ramp down and the other to ramp up
     // So do nothing if until the other timer is finished.
     if (g_operating_state != OperatingState::running) {
-        //Serial.println("down returned");
+        Serial.println("down returned");
         return;
     }
 
@@ -111,9 +111,7 @@ static void ramp_down_internal_cb(lv_timer_t * motor_timer)
 
 static void ramp_motor_up(lv_timer_cb_t ramp_cb, wcc_cb_t action_on_done)
 {
-    extern pwm_info pwm_values;
     // Starting value for the tracking variable 
-    static int32_t rpm_tracker;
     static ramp_user_data tracker_data;
     tracker_data.rpm_tracker = 10; // Start from low rpm, not zero to avoid single pulse issue 
     tracker_data.on_done = action_on_done;
@@ -144,15 +142,29 @@ static void ramp_motor_down(lv_timer_cb_t ramp_cb, wcc_cb_t action_on_done)
     }
 }
 
-void wcc_drv8871_ramp_up()
+void wcc_drv8871_ramp_up(boolean invert_driver_pins)
 {
-    //Serial.println("ramp up");
-    ramp_motor_up(ramp_up_internal_cb, NULL);
+    Serial.println("ramp up");
+    if (ramp_up_timer != NULL) {
+        lv_timer_delete(ramp_up_timer);
+        ramp_up_timer = NULL;
+    }
+    if (invert_driver_pins) {
+        ramp_motor_up(ramp_up_internal_cb, invert_in_pins);
+    }   
+    else {
+        ramp_motor_up(ramp_up_internal_cb, NULL);
+    }    
+
 }
 
 void wcc_drv8871_ramp_down(boolean invert_driver_pins)
 {
-    //Serial.println("ramp down");
+    Serial.println("ramp down");
+    if (ramp_down_timer != NULL) {
+        lv_timer_delete(ramp_down_timer);
+        ramp_down_timer = NULL;
+    }   
     if (invert_driver_pins) {
         ramp_motor_down(ramp_down_internal_cb, invert_in_pins);
     }
@@ -160,11 +172,37 @@ void wcc_drv8871_ramp_down(boolean invert_driver_pins)
         ramp_motor_down(ramp_down_internal_cb, NULL);
     }
 }
+void wcc_drv8871_ramp_down_final()
+{
+    // Kill any ongoing ramp up first
+    // Note if an active ramp down is in progress, we let it complete as this ramp down will be no-op
+    if (ramp_up_timer != NULL) {
+        lv_timer_delete(ramp_up_timer);
+        ramp_up_timer = NULL;
+    }
+    if (ramp_down_timer != NULL) {
+        lv_timer_delete(ramp_down_timer);
+        ramp_down_timer = NULL;
+    }
+    Serial.println("ramp down final");
+    // This is an abrupt stop, but the alternative is to call ramp_motor_down,
+    // which sets the rpm to the set value and then ramp down
+    ledcDetach(in2); // Stop PWM on pin
+    pinMode(in2,OUTPUT);
+    digitalWrite(in2, LOW); 
+    g_operating_state = OperatingState::stopped;
+}
 
 void wcc_drv8871_reverse()
 {
-    wcc_drv8871_ramp_down(true /*invert inputs after ramp down*/);
-    wcc_drv8871_ramp_up();
+    // Reverse may be called before a ramp up or down is finished.
+    if (g_operating_state == OperatingState::running) {
+        wcc_drv8871_ramp_down(true /*invert inputs after ramp down*/);
+        wcc_drv8871_ramp_up(false);
+    }
+    else {
+        wcc_drv8871_ramp_up(true /* invert inputs */);
+    }
 }
 
 void wcc_drv8871_init_in_pins(uint8_t p1, uint8_t p2)

@@ -22,6 +22,8 @@
     lv_observer_cb_t calculator;
  } data_binding_info;
 
+/* Externs */
+extern enum class OperatingMode g_operating_mode;
 
 /* Globals/Statics */
 lv_obj_t * settings_screen;
@@ -145,7 +147,13 @@ static void update_pwm_values_cb(lv_observer_t * observer, lv_subject_t * subjec
     LV_ASSERT_NULL(pwmi);
 
     // Update the RPM PWM value
-    pwmi->pwm_rpm = map(lv_subject_get_int(&max_rpm_int_subject), 0, MAX_RPM_MAX, 0, 255); 
+    if (g_operating_mode == OperatingMode::spin) {
+        // In spin mode, max out the RPM
+        pwmi->pwm_rpm = 255;
+    }
+    else { 
+        pwmi->pwm_rpm = map(lv_subject_get_int(&max_rpm_int_subject), 0, MAX_RPM_MAX, 0, 255); 
+    }
 
     // Update the pwm increment value
     int32_t spin_up_rate = lv_subject_get_int(&spin_up_rate_int_subject);

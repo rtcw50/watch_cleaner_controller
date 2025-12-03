@@ -111,15 +111,21 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
 
   *periods_remaining = *periods_remaining - 1;
 
-  // Reverse the motor direction at every agitate_duration interval if
-  // the motor is currently running (completed ramp up)
-  int32_t agitate_duration = lv_subject_get_int(&agitate_duration_int_subject);
-  if ((*periods_remaining % agitate_duration == 0) && 
-        *periods_remaining >= agitate_duration &&
-        g_operating_state == OperatingState::running) {
-    Serial.println("reverse");
-    wcc_drv8871_reverse();
-  } 
+  if (g_operating_mode == OperatingMode::spin) {
+    // No agitation during spin mode
+  }
+  else {
+    // Agitate during clean/rinse modes
+    // Reverse the motor direction at every agitate_duration interval if
+    // the motor is currently running (completed ramp up)
+    int32_t agitate_duration = lv_subject_get_int(&agitate_duration_int_subject);
+    if ((*periods_remaining % agitate_duration == 0) && 
+          *periods_remaining >= agitate_duration &&
+          g_operating_state == OperatingState::running) {
+      Serial.println("reverse");
+      wcc_drv8871_reverse();
+    } 
+  }
 
   format_and_publish_time_remaining(*periods_remaining);
   lv_label_set_text(mach_status_label,Mach_Status_Text_Running);

@@ -75,11 +75,10 @@ OperatingMode g_operating_mode;
 OperatingState g_operating_state;
 
 #if LV_USE_LOG != 0
-void my_print( lv_log_level_t level, const char * buf )
+void my_log_cb(lv_log_level_t level, const char * dsc)
 {
     LV_UNUSED(level);
-    Serial.println(buf);
-    Serial.flush();
+    Serial.print(dsc);
 }
 #endif
 
@@ -99,7 +98,8 @@ void my_disp_flush( lv_display_t *disp, const lv_area_t *area, uint8_t * px_map)
     my_draw_bitmaps(px_map, w * h);
      */
     if (!disp) {
-        Serial.println("my_disp_flush failed, no valid display returned");
+        LV_LOG_USER("my_disp_flush failed, no valid display returned");
+        LV_LOG_ERROR("my_disp_flush failed, no valid display returned");
         return;
     }
     uint32_t w = lv_area_get_width(area);
@@ -124,21 +124,11 @@ void my_touchpad_read( lv_indev_t * indev, lv_indev_data_t * data )
     if(!touched) {
         data->state = LV_INDEV_STATE_RELEASED;
     } else {
-#if 0
-        Serial.printf("x actual: %d y actual: %d\n", x, y);
-        Serial.println("Note: x and y are untranslated in lv_indev.c");
-        Serial.printf("data.x = %d\n", x);
-        Serial.printf("data.y = %d\n", y);
-#endif
+        LV_LOG_USER("x actual: %d y actual: %d\n", x, y);
+        LV_LOG_USER("Note: x and y are untranslated in lv_indev.c");
         data->state = LV_INDEV_STATE_PRESSED;
         data->point.x =x ;
         data->point.y = y ;
-#if 0
-        lv_area_t bc;
-        lv_obj_get_coords(btn1, &bc);
-        Serial.printf("Button coords: x1: %d, y1: %d, x2: %d, y2: %d\n",
-            bc.x1,bc.y1,bc.x2,bc.y2);
-#endif
     }
 }
 
@@ -149,21 +139,10 @@ static uint32_t my_tick(void)
     return millis();
 }
 
-#if 0
-static void slider_event_cb(lv_event_t * e)
-{
-    //lv_obj_t * slider = lv_event_get_target_obj(e);
-    Serial.println("slider callback");
-    /*Refresh the text*/
-    lv_label_set_text_fmt(sl_label, "%" LV_PRId32, lv_slider_get_value(slider));
-    lv_obj_align_to(sl_label, slider, LV_ALIGN_OUT_TOP_MID, 0, -15);    /*Align top of the slider*/
-}
-#endif
-
 
 void setup()
 {
-//    Enable 10s delay for Serial output in setup() function
+//    Enable 10s delay to enable Serial output in setup() function
 //    delay(10000);
     String LVGL_Msg = "Watch Cleaner Controller";
     LVGL_Msg += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
@@ -171,7 +150,8 @@ void setup()
 
     Serial.begin( 115200 );
     Serial.println( LVGL_Msg );
-    Serial.printf("Arduino Stack was set to %d bytes", getArduinoLoopTaskStackSize());
+    LV_LOG_USER( LVGL_Msg.c_str() );
+    LV_LOG_USER("Arduino Stack was set to %d bytes", getArduinoLoopTaskStackSize());
 
     // Note: Pin D4 was inoperable on my test device.
     wcc_drv8871_init_in_pins(D3,D6);
@@ -185,7 +165,7 @@ void setup()
 
     /* register print function for debugging */
 #if LV_USE_LOG != 0
-    lv_log_register_print_cb( my_print );
+    lv_log_register_print_cb( my_log_cb );
 #endif
 
     lv_display_t * disp;
@@ -203,9 +183,9 @@ void setup()
     LV_ASSERT(main_screen != NULL);
     wcc_set_screen_bg_style(main_screen);
 
-#if 0
-    Serial.println("After lv_display_set_rotation");
-    Serial.printf("disp->hor_res: %d  disp->ver_res: %d\n", 
+#if 1
+    LV_LOG_USER("After lv_display_set_rotation");
+    LV_LOG_USER("disp->hor_res: %d  disp->ver_res: %d\n", 
       lv_display_get_horizontal_resolution(disp), lv_display_get_vertical_resolution(disp));
 #endif
     
@@ -232,7 +212,7 @@ void setup()
     /* Settings Screen layout */
     wcc_create_settings();
 
-    Serial.println( "Setup done" );
+    LV_LOG_USER("Setup done");
 }
 
 void loop()
@@ -248,7 +228,7 @@ void touch_calibrate()
 
   // check file system exists
   if (!SPIFFS.begin()) {
-    Serial.println("Formatting file system");
+    LV_LOG_USER("Formatting file system");
     SPIFFS.format();
     SPIFFS.begin();
   }
@@ -264,7 +244,7 @@ void touch_calibrate()
     {
       File f = SPIFFS.open(CALIBRATION_FILE, "r");
       if (f) {
-        Serial.println("Reading calibration data file");
+        LV_LOG_USER("Reading calibration data file");
         if (f.readBytes((char *)calData, 14) == 14)
           calDataOK = 1;
         f.close();
@@ -281,8 +261,7 @@ void touch_calibrate()
     // data not valid so recalibrate
   
     tft.setRotation(SCREEN_ORIENTATION);
-    //Serial.printf("TFT width: %d\n", tft.width());
-    //Serial.printf("TFT height: %d\n", tft.height());
+    LV_LOG_USER("TFT width: %d\n", tft.width());
     tft.fillScreen(TFT_BLACK);
     tft.setCursor(20, 0);
     tft.setTextFont(2);
@@ -305,7 +284,7 @@ void touch_calibrate()
     tft.println("Calibration complete!");
 
     // store data
-    Serial.println("Storing calibration data");
+    LV_LOG_USER("Storing calibration data");
     File f = SPIFFS.open(CALIBRATION_FILE, "w");
     if (f) {
       f.write((const unsigned char *)calData, 14);

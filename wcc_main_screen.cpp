@@ -106,7 +106,7 @@ static  void clear_time_remaining_label(void * user_data) {
 static void clean_rinse_timer_cb(lv_timer_t * timer) 
 {
   uint32_t *periods_remaining = (uint32_t *)timer->user_data;
-  Serial.println("clean_rinse timer callback");
+  LV_LOG_USER("... called, periods remaining: %d", *periods_remaining);
   char * mach_status_text = lv_label_get_text(mach_status_label);
 
   *periods_remaining = *periods_remaining - 1;
@@ -122,7 +122,7 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
     if ((*periods_remaining % agitate_duration == 0) && 
           *periods_remaining >= agitate_duration &&
           g_operating_state == OperatingState::running) {
-      Serial.println("reverse");
+      LV_LOG_USER("reverse");
       wcc_drv8871_reverse();
     } 
   }
@@ -141,7 +141,7 @@ static void clean_rinse_timer_cb(lv_timer_t * timer)
     LV_ASSERT(lv_obj_has_state(start_button,LV_STATE_CHECKED));
     // Transition to stopped state
     // Stop the motor or finish in process of ramping up/down
-    Serial.println("final ramp down from timer");
+    LV_LOG_USER("... time expired, ramp down final");
     wcc_drv8871_ramp_down_final();
 
     // Manually change the start button back to unchecked state and update the label
@@ -194,21 +194,21 @@ static void start_button_event_cb(lv_event_t * event)
       clean_rinse_timer = lv_timer_create(clean_rinse_timer_cb, 1000 /* ms*/, &g_periods_remaining);
       lv_timer_set_repeat_count(clean_rinse_timer, g_periods_remaining);
       lv_label_set_text(mach_status_label, Mach_Status_Text_Running);
-      Serial.println("ramp up from ready to start button");
+      LV_LOG_USER("ramp up from ready to start button");
       wcc_drv8871_ramp_up(false /* do not invert driver pins */);
     }
     else if (BUTTON_RESUME_CLICKED(button)) {
       lv_label_set_text(label,LV_SYMBOL_PAUSE); // pause icon
       lv_label_set_text(mach_status_label,Mach_Status_Text_Running);
       lv_timer_resume(clean_rinse_timer);
-      Serial.println("ramp up from resume button");
+      LV_LOG_USER("ramp up from resume button");
       wcc_drv8871_ramp_up(false /* do not invert driver pins */);
     }
     else if (BUTTON_PAUSE_CLICKED(button)) {
       lv_label_set_text(label,LV_SYMBOL_PLAY); // resume icon
       lv_label_set_text(mach_status_label,Mach_Status_Text_Paused);
       format_and_publish_time_remaining(g_periods_remaining);
-      Serial.println("ramp down from pause button");
+      LV_LOG_USER("ramp down from pause button");
       // Manually pause the timer.
       lv_timer_pause(clean_rinse_timer);
 //      wcc_drv8871_ramp_down(false /* do not invert driver pins */);
@@ -219,67 +219,6 @@ static void start_button_event_cb(lv_event_t * event)
     }
   }
 }
-
-
-
-#if 0
-static void start_button_event_cb(lv_event_t * event)
-{
-  lv_obj_t * button = lv_event_get_target_obj(event);
-  lv_event_code_t code = lv_event_get_code(event);
-  lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
-
-  // start button is a checked button. 
-
-  // Change back to start mode, if checked already
-  // I use strcmp instead of button state because timing of state change
-  // button callback is not deterministic in my experiements
-  if (code == LV_EVENT_VALUE_CHANGED) {
-    // "play" button is clicked, changes to "pause" icon, but running state
-    if (lv_obj_has_state(start_button, LV_STATE_CHECKED)) {
-      Serial.printf("Start button: (run-pause to pause icon ) %s\n", lv_obj_has_state(start_button,LV_STATE_CHECKED) ? "checked" : "not checked");
-      // Set button to PAUSE and create or resume the timer
-      lv_label_set_text(label,LV_SYMBOL_PAUSE);
-
-      // Set motor state to running
-      Serial.println("ramp up event value changed");
-      wcc_drv8871_ramp_up(false);
-
-    /* Timers are used to control the duration of the clean/rinse cycle.
-      The timer repeats essentially once per second, acting like a countdown
-      timers. The total duration is determined by the repeat count. */
-    
-      /* If timer doesn't exist, create and start it */
-      if (clean_rinse_timer == NULL) {
-        //g_periods_remaining=MAIN_CYCLE_REPEAT_COUNT + 1; /* 1 second per period */
-        lv_subject_t * timer_duration_subject = get_timer_subject();
-        LV_ASSERT_NULL(timer_duration_subject);
-        g_periods_remaining=lv_subject_get_int(timer_duration_subject) + 1; /* 1 second per period */
-        clean_rinse_timer = lv_timer_create(clean_rinse_timer_cb, 1000 /* ms*/, &g_periods_remaining);
-        lv_timer_set_repeat_count(clean_rinse_timer, g_periods_remaining);
-        lv_label_set_text(mach_status_label, Mach_Status_Text_Running);
-      }
-      else { /* otherwise, resume an existing timer */ 
-        lv_timer_resume(clean_rinse_timer);
-        // TBD: ramp timers
-      }
-
-    } 
-    else {  // "pause" button is clicked 
-      Serial.printf("Start button (pause to play icon): %s\n", lv_obj_has_state(start_button,LV_STATE_CHECKED) ? "checked" : "not checked");
-      lv_label_set_text(label,LV_SYMBOL_PLAY);
-      lv_label_set_text(mach_status_label,Mach_Status_Text_Paused);
-      format_and_publish_time_remaining(g_periods_remaining);
-      Serial.println("ramp down from pause button");
-      wcc_drv8871_ramp_down(false /* do not invert driver pins */);
-      // Manually pause the timer.
-      if (clean_rinse_timer != NULL) {
-        lv_timer_pause(clean_rinse_timer);
-      }
-    }
-  }
-}
-#endif
 
 static lv_obj_t * create_start_button(lv_obj_t * scr)
 {
@@ -309,13 +248,11 @@ static void stop_button_event_cb(lv_event_t * event)
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
-  //Serial.printf("Button event is %d\n", code);
-  // LV_EVENT_VALUE_CHANGED, LV_EVENT_VALUE_CLICKED
   if (code == LV_EVENT_CLICKED) {
-    Serial.println("Stop button clicked");
+    LV_LOG_USER("stop button clicked");
     // The duration timer is active (running or paused)
     if (clean_rinse_timer != NULL) {
-      Serial.println("ramp down from stop button");
+      LV_LOG_USER("ramp down from stop button");
       wcc_drv8871_ramp_down_final();
       lv_timer_delete(clean_rinse_timer);
       clean_rinse_timer = NULL;
@@ -358,7 +295,7 @@ static void settings_button_event_cb(lv_event_t * event)
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
   if (code == LV_EVENT_CLICKED) {
-    Serial.println("Settings button clicked");
+    LV_LOG_USER("Settings button clicked");
     lv_screen_load_anim(settings_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
   }
 }

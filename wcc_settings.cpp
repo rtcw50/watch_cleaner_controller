@@ -118,9 +118,8 @@ static void return_to_main_button_event_cb(lv_event_t * event)
   lv_event_code_t code = lv_event_get_code(event);
   lv_obj_t * label = lv_obj_get_child(button, 0);  // Label of button
 
-  //Serial.printf("Button event is %d\n", code);
   if (code == LV_EVENT_CLICKED) {
-    Serial.println("Return button clicked");
+    LV_LOG_USER("Return button clicked");
     lv_screen_load_anim(main_screen, LV_SCR_LOAD_ANIM_OVER_TOP, 500 /* time*/, 10 /* delay */, false /* auto_del */ );
   }
 }
@@ -171,9 +170,7 @@ static void up_button_event_cb(lv_event_t * event)
   data_binding_info * dbi  = (data_binding_info *)lv_event_get_user_data(event);
   int32_t val = lv_subject_get_int(dbi->subject);
 
-//  Serial.printf("Button event is %d\n", code);
-//  Serial.println("up button handler");
-//  FIXME: add LV_EVENT_LONG_PRESSED_REPEAT support for quick changing
+//  TBD: add LV_EVENT_LONG_PRESSED_REPEAT support for quick changing
 //  values. There's seems to be a problem with SHORT_CLICKED events
 //  intermixed with LONG_PRESSED_REPEAT events.  
 //  For now, just update by +/- 30 sec increments.
@@ -189,8 +186,6 @@ static void down_button_event_cb(lv_event_t * event)
   data_binding_info * dbi = (data_binding_info *)lv_event_get_user_data(event);
   int32_t val = lv_subject_get_int(dbi->subject);
 
-  //Serial.println("down button handler");
-  //Serial.printf("down button event is %d\n", code);
   val -= dbi->update_increment;
   // time setting value bottoms out at zero
   val = val <= 0 ? 0 : val;
@@ -225,7 +220,7 @@ static lv_obj_t * create_duration_item(const char * desc)
     extern lv_style_t duration_button_style;
 
     lv_obj_t * up_button = lv_btn_create(cont);
-    Serial.printf("up_button idx: %d\n", lv_obj_get_index(up_button));
+    LV_LOG_USER("up_button idx: %d", lv_obj_get_index(up_button));
     lv_obj_set_width(up_button, 30);
     lv_obj_set_height(up_button, 30);
     lv_obj_add_style(up_button, &duration_button_style, 0);
@@ -249,7 +244,7 @@ static lv_obj_t * create_duration_item(const char * desc)
 
     // Time display field with white, bordered background
     lv_obj_t * time_label_cont = lv_obj_create(cont);
-    Serial.printf("time_label_cont idx: %d\n", lv_obj_get_index(time_label_cont));
+    LV_LOG_USER("time_label_cont idx: %d", lv_obj_get_index(time_label_cont));
     lv_obj_set_style_bg_color(time_label_cont, lv_color_white(), 0);
     lv_obj_set_style_border_width(time_label_cont, 1, 0);
     lv_obj_set_style_border_color(time_label_cont, lv_color_black(), 0);
@@ -260,7 +255,7 @@ static lv_obj_t * create_duration_item(const char * desc)
     lv_obj_align(time_label_cont, LV_ALIGN_RIGHT_MID, -1, -1);
 
     lv_obj_t * time_label = lv_label_create(time_label_cont);
-    Serial.printf("time_label idx: %d\n", lv_obj_get_index(time_label));
+    LV_LOG_USER("time_label idx: %d", lv_obj_get_index(time_label));
     lv_obj_set_style_bg_color(time_label_cont, lv_color_white(), 0);
     lv_label_set_text(time_label, "00:00");
     lv_obj_center(time_label);

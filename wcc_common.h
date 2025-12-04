@@ -8,6 +8,9 @@
 #ifndef WCC_COMMON_H
 #define WCC_COMMON_H
 
+/* Version */
+#define WCC_VER "1.0"
+
 /* Custom colors (lv_color_t) picked from: https://codepen.io/kevinli/pen/GRpXOvo */
 #define WCC_BACKGROUND_GREY 0x99,0x99,0x99
 #define WCC_TITLE_BLUE 0x0c,0x00,0xcc

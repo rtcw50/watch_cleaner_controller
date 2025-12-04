@@ -391,7 +391,7 @@ static void create_machine_status(lv_obj_t * scr)
 void wcc_create_main_screen_widgets()
 {
     LV_ASSERT(main_screen != NULL);
-    (void)wcc_create_title_bar(main_screen, "Watch Cleaner Controller");
+    (void)wcc_create_title_bar(main_screen, "Watch Cleaner Controller " WCC_VER);
     (void)create_start_button(main_screen);
     (void)create_stop_button(main_screen);
     (void)create_settings_button(main_screen);

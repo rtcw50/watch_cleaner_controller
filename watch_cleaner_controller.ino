@@ -292,20 +292,3 @@ void touch_calibrate()
     }
   }
 }
-
-void wcc_ramp_up_motor( int32_t spin_up_time, int32_t max_rpm)
-{
-
-}
-
-void wcc_ramp_down_motor( int32_t spin_up_time)
-{
-
-}
-
-void wcc_reverse_motor(int32_t spin_up_time, int32_t max_rpm)
-{
-  // ramp_down
-  // invert inputs
-  // ramp up
-}

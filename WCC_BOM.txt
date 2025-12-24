@@ -1,0 +1,144 @@
+Note: the metal tubing in this BOM is only 30mm in diameter.
+All the Fusion360 drawings used a 32mm diameter central tower tube.
+Please adjust the Fusion drawings which interface with the tower to
+have a 30mm diameter or find a substitute 400mm tower with a 32mm diameter.
+
+Note: There are a lot of optimizations that could be made in this
+project build. Using an existing 12v power supply instead of 24v for
+example. The highest cost items are the jars and the cleaning baskets.
+Cheaper jars could be substituted for sure. The cleaning baskets are
+difficult to source and/or build. So you may be stuck buying these.
+A homemade DC-DC converter could be used (using a 7805 chip) to reduce
+costs further. The project box could be printed. 
+
+Many of these parts could be sourced from AliExpress for better prices.
+
+
+
+
+====
+
+1/4 in Cam Action Quick Release Clamp
+https://a.co/d/6fLN74I
+$10
+
+Used to clamp the motor arm to the central tower tube
+
+=====
+
+30 x 400 mm metal tubing
+https://a.co/d/1tIo7KJ
+$10
+
+The central tower tube holding the motor arm 
+and electronics box.
+
+=====
+
+115x90x55 electronic project box
+https://a.co/d/0yJbbfb
+$10
+
+For mounting the touch screen and holding the
+the circuitry.
+
+=====
+
+12v/24v Buck converter module
+https://a.co/d/8wmAmbr
+$8
+
+For supplying power to the micro
+
+=====
+
+Motor Driver Module
+https://a.co/d/3Kp6xbc
+$10
+
+PWM motor driver
+
+=====
+
+3.2 in Touch Display
+https://a.co/d/8Bccd52
+
+User interface
+
+====
+
+
+24v 600rpm DC Motor
+https://a.co/d/gkB9TFk
+$15
+
+Motor
+
+=====
+
+Seeeduino ESP32C3 Module
+https://tinyurl.com/4826c9e4 (Digikey)
+$5
+
+Microcontroller
+
+=====
+
+Weck 28oz Canning Jars
+4x$9 = $36
+https://tinyurl.com/49rf26c9
+
+For cleaning and rinsing fluid
+
+=====
+
+
+24V power supply
+https://a.co/d/gkB9TFk
+$10
+
+Main power supply
+
+=====
+
+Nuts and Bolts - $10
+4 #12-24 x 1.5in Phillips pan head zinc bolt
+https://boltdepot.com/Product-Details?product=9268
+
+4 Hex nuts, Zinc steel 9/16-12
+https://boltdepot.com/Product-Details?product=7602
+
+4 Wood screws, Phillips flat head, Zinc plated steel, #8
+https://boltdepot.com/Product-Details?product=2008
+
+Assorted small plastic capable screws for
+attaching the circuit board and screen to the plastic box.
+
+2 conductor 18-20 gauge electrical wire (4 ft)
+
+Soldering and wire wrap kits to assemble the circuit board
+
+Cleaning basket hardware:
+
+Stainless steel shaft: 100mm x 8mm
+https://www.aliexpress.com/item/2255801016919172.html?spm=a2g0o.order_detail.order_detail_item.3.7873f19c2B5L6o
+$2
+
+Coupler: 6mm->8mm
+https://www.aliexpress.com/item/2255800010237733.html?spm=a2g0o.order_detail.order_detail_item.3.7ac4f19cDWON7a
+$1
+
+Cleaning Baskets and Holders:
+https://a.co/d/j9JWwtP
+$90- Amazon
+
+https://ebay.us/m/lHWN3f
+$60 - ebay
+
+
+
+
+
+
+
+
